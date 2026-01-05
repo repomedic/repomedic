@@ -32,6 +32,70 @@ func TestSecretScanningDisabledRule_Evaluate(t *testing.T) {
 			expectedStatus: rules.StatusSkipped,
 		},
 		{
+			name: "private repo, GHAS disabled -> skipped",
+			repo: &github.Repository{
+				FullName:   github.String("org/repo"),
+				Visibility: github.String("private"),
+				SecurityAndAnalysis: &github.SecurityAndAnalysis{
+					AdvancedSecurity: &github.AdvancedSecurity{
+						Status: github.String("disabled"),
+					},
+					SecretScanning: &github.SecretScanning{
+						Status: github.String("disabled"),
+					},
+				},
+			},
+			expectedStatus: rules.StatusSkipped,
+		},
+		{
+			name: "internal repo, GHAS disabled -> skipped",
+			repo: &github.Repository{
+				FullName:   github.String("org/repo"),
+				Visibility: github.String("internal"),
+				SecurityAndAnalysis: &github.SecurityAndAnalysis{
+					AdvancedSecurity: &github.AdvancedSecurity{
+						Status: github.String("disabled"),
+					},
+					SecretScanning: &github.SecretScanning{
+						Status: github.String("disabled"),
+					},
+				},
+			},
+			expectedStatus: rules.StatusSkipped,
+		},
+		{
+			name: "private repo, GHAS enabled, secret scanning disabled -> fail",
+			repo: &github.Repository{
+				FullName:   github.String("org/repo"),
+				Visibility: github.String("private"),
+				SecurityAndAnalysis: &github.SecurityAndAnalysis{
+					AdvancedSecurity: &github.AdvancedSecurity{
+						Status: github.String("enabled"),
+					},
+					SecretScanning: &github.SecretScanning{
+						Status: github.String("disabled"),
+					},
+				},
+			},
+			expectedStatus: rules.StatusFail,
+		},
+		{
+			name: "public repo, GHAS disabled, secret scanning disabled -> fail",
+			repo: &github.Repository{
+				FullName:   github.String("org/repo"),
+				Visibility: github.String("public"),
+				SecurityAndAnalysis: &github.SecurityAndAnalysis{
+					AdvancedSecurity: &github.AdvancedSecurity{
+						Status: github.String("disabled"),
+					},
+					SecretScanning: &github.SecretScanning{
+						Status: github.String("disabled"),
+					},
+				},
+			},
+			expectedStatus: rules.StatusFail,
+		},
+		{
 			name: "enabled -> pass",
 			repo: &github.Repository{
 				FullName: github.String("org/repo"),
