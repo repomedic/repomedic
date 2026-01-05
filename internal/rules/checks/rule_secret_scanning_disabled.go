@@ -29,7 +29,7 @@ func (r *SecretScanningDisabledRule) Description() string {
 		"To pass this rule, enable 'Secret scanning' (or 'Secret Protection') in the repository settings.\n" +
 		"Location: Settings > Security > Advanced Security.\n" +
 		"This rule is gated to only fail if the feature is explicitly reported as available but disabled. " +
-		"It does not flag repositories where the feature is unavailable (e.g. missing GHAS license)."
+		"It does not flag repositories where the feature is unavailable (e.g. missing GHAS license on private repos)."
 }
 
 func (r *SecretScanningDisabledRule) Dependencies(ctx context.Context, repo *github.Repository) ([]data.DependencyKey, error) {
@@ -54,6 +54,19 @@ func (r *SecretScanningDisabledRule) Evaluate(ctx context.Context, repo *github.
 	if targetRepo.SecurityAndAnalysis == nil {
 		return rules.SkippedResult(repo, r.ID(), "Security and analysis settings not available"), nil
 	}
+
+	// Check if GHAS is required but missing (for private/internal repos)
+	// Public repos have Secret Scanning available for free.
+	// Private/Internal repos require GHAS to be enabled.
+	visibility := targetRepo.GetVisibility()
+	if visibility == "private" || visibility == "internal" {
+		// If AdvancedSecurity is nil or disabled, Secret Scanning is not available
+		if targetRepo.SecurityAndAnalysis.AdvancedSecurity == nil ||
+			targetRepo.SecurityAndAnalysis.AdvancedSecurity.GetStatus() != "enabled" {
+			return rules.SkippedResult(repo, r.ID(), "GHAS not enabled; Secret Scanning unavailable"), nil
+		}
+	}
+
 	if targetRepo.SecurityAndAnalysis.SecretScanning == nil {
 		return rules.SkippedResult(repo, r.ID(), "Secret scanning settings not available"), nil
 	}
