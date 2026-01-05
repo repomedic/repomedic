@@ -1,0 +1,23 @@
+# macOS-friendly defaults:
+# - Store text files with LF line endings in the repo.
+# - Let Git auto-detect text vs binary where possible.
+* text=auto eol=lf
+
+# Explicitly mark common script types as text.
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+*.ps1 text eol=lf
+
+# Treat common binaries as binary.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.ico binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.exe binary
+*.dll binary
