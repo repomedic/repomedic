@@ -1,0 +1,144 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - id: ver
+        run: |
+          if [[ -z "${GITHUB_REF_NAME}" ]]; then
+            echo "version=unknown" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: meta
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Add Go bin to PATH
+        run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Install Task
+        run: go install github.com/go-task/task/v3/cmd/task@v3.46.3
+
+      - name: Install CI tools
+        run: task tools:install
+
+      - name: Run checks
+        run: task check
+
+  build:
+    needs: [meta, test]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+            ext: .exe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          mkdir -p dist
+          COMMIT="${GITHUB_SHA::7}"
+          DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          LDFLAGS="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}"
+          go build -trimpath -ldflags "${LDFLAGS}" -o "dist/repomedic${{ matrix.ext }}" ./cmd/repomedic
+
+      - name: Package
+        env:
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          ASSET="repomedic_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          mkdir -p "$ASSET"
+          cp "dist/repomedic${{ matrix.ext }}" "$ASSET/repomedic${{ matrix.ext }}"
+          [ -f LICENSE.md ] && cp LICENSE.md "$ASSET/LICENSE.md" || true
+          [ -f README.md ] && cp README.md "$ASSET/README.md" || true
+          zip -r "${ASSET}.zip" "$ASSET"
+          shasum -a 256 "${ASSET}.zip" > "${ASSET}.zip.sha256"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: repomedic_${{ needs.meta.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: |
+            repomedic_${{ needs.meta.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+            repomedic_${{ needs.meta.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip.sha256
+          if-no-files-found: error
+
+  release:
+    needs: [meta, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create checksums.txt
+        run: |
+          cd dist
+          find . -maxdepth 2 -name '*.zip.sha256' -print0 | xargs -0 cat > checksums.txt
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          FILES=$(find dist -type f \( -name '*.zip' -o -name '*.zip.sha256' -o -name 'checksums.txt' \) -print)
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release upload "$VERSION" $FILES --clobber
+          else
+            gh release create "$VERSION" \
+              --title "$VERSION" \
+              --target "$GITHUB_SHA" \
+              --notes "Automated release from main @ $GITHUB_SHA" \
+              $FILES
+          fi

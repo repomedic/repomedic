@@ -1,0 +1,109 @@
+version: '3'
+
+vars:
+  BIN_DIR: bin
+  BIN_NAME: repomedic{{if eq OS "windows"}}.exe{{end}}
+  BIN: '{{.BIN_DIR}}/{{.BIN_NAME}}'
+
+  # Build metadata
+  VERSION:
+    sh: git describe --tags --always --dirty
+  COMMIT:
+    sh: git rev-parse --short HEAD
+  DATE:
+    sh: date -u +"%Y-%m-%dT%H:%M:%SZ"
+
+  LDFLAGS: >-
+    -X main.version={{.VERSION}}
+    -X main.commit={{.COMMIT}}
+    -X main.date={{.DATE}}
+
+  # Dev tool versions (keep in sync with CI workflows)
+  GOLANGCI_LINT_VERSION: v1.62.2
+  GOVULNCHECK_VERSION: latest
+
+tasks:
+  "tools:install":
+    desc: Installs development tools needed for local checks (golangci-lint, govulncheck).
+    cmds:
+      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@{{.GOLANGCI_LINT_VERSION}}
+      - go install golang.org/x/vuln/cmd/govulncheck@{{.GOVULNCHECK_VERSION}}
+
+  fmt:
+    desc: Formats Go code in-place.
+    cmds:
+      - gofmt -w .
+
+  "fmt:check":
+    desc: Verifies Go files are formatted (fails if gofmt would change files).
+    cmds:
+      - cmd: |-
+          test -z "$(gofmt -l .)"
+        silent: true
+
+  vet:
+    desc: Runs go vet on all packages.
+    cmds:
+      - go vet ./...
+
+  vulncheck:
+    desc: Runs govulncheck across the module.
+    preconditions:
+      - sh: command -v govulncheck
+        msg: "govulncheck is not installed or not on PATH (run: task tools:install)"
+    cmds:
+      - govulncheck ./...
+
+  check:
+    desc: Runs the same checks as CI (fmt check, vet, lint, vulncheck, tests).
+    cmds:
+      - task: "fmt:check"
+      - task: vet
+      - task: lint
+      - task: vulncheck
+      - task: test
+
+  build:
+    desc: Compiles the binary with version/commit/date injection and writes a SHA-256 checksum.
+    cmds:
+      - cmd: mkdir {{.BIN_DIR}}
+        platforms: [windows]
+        ignore_error: true
+      - cmd: mkdir -p {{.BIN_DIR}}
+        platforms: [linux, darwin]
+      - go build -ldflags "{{.LDFLAGS}}" -o "{{.BIN}}" ./cmd/repomedic
+
+      # SHA-256 checksum (writes bin/repomedic(.exe).sha256 with `hash  filename`)
+      - cmd: >-
+          pwsh -NoProfile -Command
+          '$h=(Get-FileHash -Algorithm SHA256 "{{.BIN}}").Hash.ToLower();
+          $out=Join-Path "{{.BIN_DIR}}" "{{.BIN_NAME}}.sha256";
+          ($h + "  {{.BIN_NAME}}") | Out-File -FilePath $out -Encoding ascii'
+        platforms: [windows]
+      - cmd: shasum -a 256 "{{.BIN}}" | awk '{print $1 "  {{.BIN_NAME}}"}' > "{{.BIN}}.sha256"
+        platforms: [darwin]
+      - cmd: sha256sum "{{.BIN}}" | awk '{print $1 "  {{.BIN_NAME}}"}' > "{{.BIN}}.sha256"
+        platforms: [linux]
+
+  test:
+    desc: Runs all unit tests.
+    cmds:
+      - go test ./...
+
+  lint:
+    desc: Executes static analysis via golangci-lint.
+    preconditions:
+      - sh: command -v golangci-lint
+        msg: "golangci-lint is not installed or not on PATH (run: task tools:install)"
+    cmds:
+      - golangci-lint run ./...
+
+  run:
+    desc: Runs the application from source (pass args after --).
+    cmds:
+      - go run ./cmd/repomedic -- {{.CLI_ARGS}}
+
+  clean:
+    desc: Removes build artifacts.
+    cmds:
+      - rm -rf {{.BIN_DIR}}

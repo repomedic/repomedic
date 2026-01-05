@@ -1,0 +1,34 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    # Baseline correctness/suspicious-construct checks
+    - govet
+    - staticcheck
+    - errcheck
+    - gosimple
+    - ineffassign
+    - unused
+
+    # High-signal extras (kept intentionally small)
+    - errorlint
+    - nolintlint
+    - unconvert
+    - misspell
+    - bidichk
+    - bodyclose
+
+issues:
+  # Keep CI strict and deterministic.
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+linters-settings:
+  misspell:
+    locale: US
+
+output:
+  sort-results: true
