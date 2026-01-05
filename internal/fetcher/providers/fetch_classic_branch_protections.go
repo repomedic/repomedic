@@ -88,7 +88,6 @@ func fetchClassicBranchProtections(ctx context.Context, owner, repo string, f *f
 			},
 		}
 
-		//nolint:bodyclose // DoGraphQL closes the response body before returning.
 		resp, httpResp, err := gh.DoGraphQL[graphQLClassicBranchProtectionData](ctx, f.Client(), greq)
 		if httpResp != nil {
 			f.Budget().UpdateFromResponse(httpResp)

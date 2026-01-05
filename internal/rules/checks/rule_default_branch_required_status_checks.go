@@ -65,7 +65,7 @@ func (r *DefaultBranchRequiredStatusChecks) Configure(opts map[string]string) er
 	if val, ok := opts["min_count"]; ok {
 		v, err := strconv.Atoi(val)
 		if err != nil {
-			return fmt.Errorf("invalid min_count: %v", err)
+			return fmt.Errorf("invalid min_count: %w", err)
 		}
 		r.minCount = v
 	}
@@ -73,7 +73,7 @@ func (r *DefaultBranchRequiredStatusChecks) Configure(opts map[string]string) er
 	if val, ok := opts["allow_any"]; ok {
 		v, err := strconv.ParseBool(val)
 		if err != nil {
-			return fmt.Errorf("invalid allow_any: %v", err)
+			return fmt.Errorf("invalid allow_any: %w", err)
 		}
 		r.allowAny = v
 	}

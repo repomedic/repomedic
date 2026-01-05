@@ -177,7 +177,6 @@ func fetchClassicBranchProtectionDeletionScopes(ctx context.Context, owner, repo
 			},
 		}
 
-		//nolint:bodyclose // DoGraphQL closes the response body before returning.
 		resp, httpResp, err := gh.DoGraphQL[graphQLBranchProtectionRulesData](ctx, f.Client(), greq)
 		if httpResp != nil {
 			f.Budget().UpdateFromResponse(httpResp)

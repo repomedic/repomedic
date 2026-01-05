@@ -133,7 +133,7 @@ func TestRulesListCmd(t *testing.T) {
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
-				// Rule already registered, ignore
+				_ = r // Rule already registered, ignore
 			}
 		}()
 		rules.Register(mr)
@@ -208,7 +208,7 @@ func TestRulesShowCmd(t *testing.T) {
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
-				// Rule already registered
+				_ = r // Rule already registered
 			}
 		}()
 		rules.Register(mr)

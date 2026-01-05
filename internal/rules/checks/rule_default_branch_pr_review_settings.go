@@ -2,10 +2,10 @@ package checks
 
 import (
 	"context"
-	"repomedic/internal/rules"
 	"encoding/json"
 	"fmt"
 	"repomedic/internal/data"
+	"repomedic/internal/rules"
 	"strconv"
 	"strings"
 

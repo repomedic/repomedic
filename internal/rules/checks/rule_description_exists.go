@@ -2,8 +2,8 @@ package checks
 
 import (
 	"context"
-	"repomedic/internal/rules"
 	"repomedic/internal/data"
+	"repomedic/internal/rules"
 
 	"github.com/google/go-github/v66/github"
 )

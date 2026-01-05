@@ -26,15 +26,15 @@ func TestMarkdownReportContract(t *testing.T) {
 	}
 
 	// acme/a: Many fails (Top risk)
-	s.Write(rules.Result{Repo: "acme/a", RuleID: "default-branch-protected", Status: rules.StatusFail})
-	s.Write(rules.Result{Repo: "acme/a", RuleID: "secret-scanning-disabled", Status: rules.StatusFail})
+	_ = s.Write(rules.Result{Repo: "acme/a", RuleID: "default-branch-protected", Status: rules.StatusFail})
+	_ = s.Write(rules.Result{Repo: "acme/a", RuleID: "secret-scanning-disabled", Status: rules.StatusFail})
 
 	// acme/b: Blocked by 403
-	s.Write(rules.Result{Repo: "acme/b", RuleID: "rule-1", Status: rules.StatusError, Message: "403 Forbidden: Upgrade to GitHub Pro"})
-	s.Write(rules.Result{Repo: "acme/b", RuleID: "rule-2", Status: rules.StatusError, Message: "403 Forbidden: feature requires GitHub Pro"})
+	_ = s.Write(rules.Result{Repo: "acme/b", RuleID: "rule-1", Status: rules.StatusError, Message: "403 Forbidden: Upgrade to GitHub Pro"})
+	_ = s.Write(rules.Result{Repo: "acme/b", RuleID: "rule-2", Status: rules.StatusError, Message: "403 Forbidden: feature requires GitHub Pro"})
 
 	// acme/c: Clean
-	s.Write(rules.Result{Repo: "acme/c", RuleID: "default-branch-protected", Status: rules.StatusPass})
+	_ = s.Write(rules.Result{Repo: "acme/c", RuleID: "default-branch-protected", Status: rules.StatusPass})
 
 	if err := s.Close(); err != nil {
 		t.Fatalf("Close failed: %v", err)

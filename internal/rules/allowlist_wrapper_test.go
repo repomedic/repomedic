@@ -86,7 +86,9 @@ func TestAllowListWrapper_Evaluate(t *testing.T) {
 			inner := &MockRule{id: "mock-rule", fail: tt.ruleFail}
 			wrapper := &AllowListWrapper{Rule: inner}
 			if tt.allowConfig != nil {
-				wrapper.Configure(tt.allowConfig)
+				if err := wrapper.Configure(tt.allowConfig); err != nil {
+					t.Fatalf("Configure error: %v", err)
+				}
 			}
 
 			result, err := wrapper.Evaluate(context.Background(), repo, nil)

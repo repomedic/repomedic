@@ -2,9 +2,9 @@ package checks
 
 import (
 	"context"
-	"repomedic/internal/rules"
 	"repomedic/internal/data"
 	"repomedic/internal/data/models"
+	"repomedic/internal/rules"
 	"strings"
 
 	"github.com/google/go-github/v66/github"

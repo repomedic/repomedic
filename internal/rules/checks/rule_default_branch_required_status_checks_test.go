@@ -151,9 +151,13 @@ func TestDefaultBranchRequiredStatusChecks_Evaluate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dc := data.NewMapDataContext(tt.data)
 			if tt.config != nil {
-				rule.Configure(tt.config)
+				if err := rule.Configure(tt.config); err != nil {
+					t.Fatalf("Configure error: %v", err)
+				}
 			} else {
-				rule.Configure(map[string]string{})
+				if err := rule.Configure(map[string]string{}); err != nil {
+					t.Fatalf("Configure error: %v", err)
+				}
 			}
 
 			result, err := rule.Evaluate(context.Background(), repo, dc)
