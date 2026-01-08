@@ -14,6 +14,12 @@ It helps teams catch security gaps and configuration drift early, locally or in 
 brew install repomedic/tap/repomedic
 ```
 
+### Winget
+
+```bash
+winget install repomedic.repomedic
+```
+
 ### Go
 
 ```bash
@@ -36,7 +42,13 @@ Scan an entire GitHub organization:
 repomedic scan --org my-org
 ```
 
-Authenticate using a GitHub token:
+Authenticate using the GitHub CLI (preferred):
+
+```bash
+gh auth login
+```
+
+Or using an environment variable:
 
 ```bash
 export GITHUB_TOKEN=ghp_...
@@ -55,6 +67,9 @@ export GITHUB_TOKEN=ghp_...
 Exit codes:
 - 0: all checks passed
 - 1: one or more checks failed
+- 2: partial failure (error evaluating some rules)
+- 3: fatal error
+
 
 ---
 
