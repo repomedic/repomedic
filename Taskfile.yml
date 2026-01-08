@@ -107,3 +107,13 @@ tasks:
     desc: Removes build artifacts.
     cmds:
       - rm -rf {{.BIN_DIR}}
+
+  release:
+    desc: Release with Goreleaser (requires GITHUB_TOKEN).
+    cmds:
+      - goreleaser release --clean
+
+  "release:snapshot":
+    desc: Build a snapshot release locally.
+    cmds:
+      - goreleaser release --snapshot --clean --skip=publish,sign

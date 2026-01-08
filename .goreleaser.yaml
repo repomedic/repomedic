@@ -1,0 +1,87 @@
+version: 2
+
+project_name: repomedic
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X repomedic/internal/cli.buildVersion={{.Version}}
+      - -X repomedic/internal/cli.buildCommit={{.Commit}}
+      - -X repomedic/internal/cli.buildDate={{.Date}}
+    main: ./cmd/repomedic
+
+archives:
+  - format: tar.gz
+    # Use a format compatible with Homebrew and standard release conventions
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+
+brews:
+  - name: repomedic
+    
+    # push the formula to the tap repository
+    repository:
+      owner: repomedic
+      name: homebrew-tap
+      token: "{{ .Env.GITHUB_TOKEN }}"
+
+    # Git author used to commit to the repository.
+    commit_author:
+      name: repomedic-bot
+      email: bot@repomedic.io
+
+    homepage: "https://github.com/repomedic/repomedic"
+    description: "The Governance Auditor for GitHub Fleets"
+    license: "Apache-2.0"
+
+    directory: Formula
+
+    test: |
+      system "#{bin}/repomedic --version"
+
+    install: |
+      bin.install "repomedic"
+
+winget:
+  - name: repomedic
+    publisher: repomedic
+    license: Apache-2.0
+    license_url: "https://github.com/repomedic/repomedic/blob/main/LICENSE"
+    copyright: "Copyright (c) 2026 repomedic"
+    homepage: "https://github.com/repomedic/repomedic"
+    short_description: "The Governance Auditor for GitHub Fleets"
+    repository:
+      owner: repomedic
+      name: winget-pkgs
+      token: "{{ .Env.GITHUB_TOKEN }}"
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
