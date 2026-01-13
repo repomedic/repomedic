@@ -90,7 +90,7 @@ func (o *orgMergeBaselineFetcher) Fetch(ctx context.Context, repo *github.Reposi
 		return nil, err
 	}
 
-	if rulesets == nil || len(rulesets) == 0 {
+	if len(rulesets) == 0 {
 		return &models.MergeBaseline{
 			State:    models.BaselineStateNone,
 			Source:   models.BaselineSourceOrganizationRuleset,
