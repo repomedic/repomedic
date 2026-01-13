@@ -10,6 +10,8 @@ import (
 	"repomedic/internal/fetcher"
 	_ "repomedic/internal/fetcher/providers"
 	gh "repomedic/internal/github"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-github/v66/github"
@@ -22,8 +24,43 @@ type testCycleFetcher struct {
 
 func (t *testCycleFetcher) Key() data.DependencyKey { return t.key }
 
+func (t *testCycleFetcher) Scope() data.FetchScope { return data.ScopeRepo }
+
 func (t *testCycleFetcher) Fetch(ctx context.Context, repo *github.Repository, _ map[string]string, f *fetcher.Fetcher) (any, error) {
 	return f.Fetch(ctx, repo, t.target, nil)
+}
+
+type testValueFetcher struct {
+	key   data.DependencyKey
+	scope data.FetchScope
+	calls *int32
+}
+
+func (t *testValueFetcher) Key() data.DependencyKey { return t.key }
+
+func (t *testValueFetcher) Scope() data.FetchScope { return t.scope }
+
+func (t *testValueFetcher) Fetch(_ context.Context, _ *github.Repository, _ map[string]string, _ *fetcher.Fetcher) (any, error) {
+	atomic.AddInt32(t.calls, 1)
+	return "ok", nil
+}
+
+const (
+	testOrgScopeKey  data.DependencyKey = "test.scope.org"
+	testRepoScopeKey data.DependencyKey = "test.scope.repo"
+)
+
+var (
+	testOrgScopeCalls  int32
+	testRepoScopeCalls int32
+	testScopeOnce      sync.Once
+)
+
+func ensureTestScopeFetchersRegistered() {
+	testScopeOnce.Do(func() {
+		fetcher.RegisterDataFetcher(&testValueFetcher{key: testOrgScopeKey, scope: data.ScopeOrg, calls: &testOrgScopeCalls})
+		fetcher.RegisterDataFetcher(&testValueFetcher{key: testRepoScopeKey, scope: data.ScopeRepo, calls: &testRepoScopeCalls})
+	})
 }
 
 func newTestClient(t *testing.T, serverURL string) *gh.Client {
@@ -276,5 +313,90 @@ func TestFetcher_DependencyCycleDetection_MutualCycle(t *testing.T) {
 	_, err := f.Fetch(context.Background(), repo, aKey, nil)
 	if err == nil {
 		t.Fatalf("expected cycle detection error")
+	}
+}
+
+func TestFetcher_FetchScope_Org_DedupesAcrossReposSameOrg(t *testing.T) {
+	ensureTestScopeFetchersRegistered()
+	atomic.StoreInt32(&testOrgScopeCalls, 0)
+
+	server := httptest.NewServer(http.NewServeMux())
+	defer server.Close()
+	client := newTestClient(t, server.URL)
+	f := fetcher.NewFetcher(client, fetcher.NewRequestBudget())
+
+	repoA := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo-a"), FullName: github.String("acme/repo-a")}
+	repoB := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo-b"), FullName: github.String("acme/repo-b")}
+
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for _, r := range []*github.Repository{repoA, repoB} {
+		wg.Add(1)
+		go func(repo *github.Repository) {
+			defer wg.Done()
+			<-start
+			val, err := f.Fetch(context.Background(), repo, testOrgScopeKey, nil)
+			if err != nil {
+				t.Errorf("Fetch failed: %v", err)
+				return
+			}
+			if val != "ok" {
+				t.Errorf("got %v, want %v", val, "ok")
+			}
+		}(r)
+	}
+	close(start)
+	wg.Wait()
+
+	if got := atomic.LoadInt32(&testOrgScopeCalls); got != 1 {
+		t.Fatalf("expected 1 fetch call for org-scoped dep across same org, got %d", got)
+	}
+}
+
+func TestFetcher_FetchScope_Org_DoesNotDedupeAcrossDifferentOrgs(t *testing.T) {
+	ensureTestScopeFetchersRegistered()
+	atomic.StoreInt32(&testOrgScopeCalls, 0)
+
+	server := httptest.NewServer(http.NewServeMux())
+	defer server.Close()
+	client := newTestClient(t, server.URL)
+	f := fetcher.NewFetcher(client, fetcher.NewRequestBudget())
+
+	repoA := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo-a"), FullName: github.String("acme/repo-a")}
+	repoB := &github.Repository{Owner: &github.User{Login: github.String("other")}, Name: github.String("repo-b"), FullName: github.String("other/repo-b")}
+
+	if _, err := f.Fetch(context.Background(), repoA, testOrgScopeKey, nil); err != nil {
+		t.Fatalf("Fetch repoA failed: %v", err)
+	}
+	if _, err := f.Fetch(context.Background(), repoB, testOrgScopeKey, nil); err != nil {
+		t.Fatalf("Fetch repoB failed: %v", err)
+	}
+
+	if got := atomic.LoadInt32(&testOrgScopeCalls); got != 2 {
+		t.Fatalf("expected 2 fetch calls for org-scoped dep across different orgs, got %d", got)
+	}
+}
+
+func TestFetcher_FetchScope_Repo_DoesNotDedupeAcrossRepos(t *testing.T) {
+	ensureTestScopeFetchersRegistered()
+	atomic.StoreInt32(&testRepoScopeCalls, 0)
+
+	server := httptest.NewServer(http.NewServeMux())
+	defer server.Close()
+	client := newTestClient(t, server.URL)
+	f := fetcher.NewFetcher(client, fetcher.NewRequestBudget())
+
+	repoA := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo-a"), FullName: github.String("acme/repo-a")}
+	repoB := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo-b"), FullName: github.String("acme/repo-b")}
+
+	if _, err := f.Fetch(context.Background(), repoA, testRepoScopeKey, nil); err != nil {
+		t.Fatalf("Fetch repoA failed: %v", err)
+	}
+	if _, err := f.Fetch(context.Background(), repoB, testRepoScopeKey, nil); err != nil {
+		t.Fatalf("Fetch repoB failed: %v", err)
+	}
+
+	if got := atomic.LoadInt32(&testRepoScopeCalls); got != 2 {
+		t.Fatalf("expected 2 fetch calls for repo-scoped dep across repos, got %d", got)
 	}
 }

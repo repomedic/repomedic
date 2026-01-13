@@ -12,6 +12,7 @@ import (
 
 type DataFetcher interface {
 	Key() data.DependencyKey
+	Scope() data.FetchScope
 	Fetch(ctx context.Context, repo *github.Repository, params map[string]string, f *Fetcher) (any, error)
 }
 

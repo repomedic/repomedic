@@ -12,10 +12,11 @@ import (
 )
 
 type Fetcher struct {
-	client *gh.Client
-	budget *RequestBudget
-	group  Group
-	cache  *Cache
+	client       *gh.Client
+	budget       *RequestBudget
+	group        Group
+	cache        *Cache
+	scannedRepos []*github.Repository
 }
 
 type fetchChainKey struct{}
@@ -34,6 +35,20 @@ func (f *Fetcher) Budget() *RequestBudget {
 
 func (f *Fetcher) Client() *gh.Client {
 	return f.client
+}
+
+// SetScannedRepos injects the list of repositories discovered for the current scan.
+// This must be called by the engine after discovery but before rule evaluation begins.
+// It enables org-scoped fetchers (like DepReposScanned) to access the discovered list
+// without making additional GitHub API calls.
+func (f *Fetcher) SetScannedRepos(repos []*github.Repository) {
+	f.scannedRepos = repos
+}
+
+// ScannedRepos returns the list of repositories discovered for the current scan.
+// Returns nil if SetScannedRepos has not been called.
+func (f *Fetcher) ScannedRepos() []*github.Repository {
+	return f.scannedRepos
 }
 
 func (f *Fetcher) Fetch(ctx context.Context, repo *github.Repository, key data.DependencyKey, params map[string]string) (any, error) {
@@ -62,10 +77,18 @@ func (f *Fetcher) Fetch(ctx context.Context, repo *github.Repository, key data.D
 		return nil, fmt.Errorf("Fetch: repo owner/name is required")
 	}
 
-	// Cache key (must be deterministic)
-	flightKey := makeFlightKey(repo, key, params)
+	fetchImpl, ok := ResolveDataFetcher(key)
+	if !ok {
+		return nil, fmt.Errorf("unsupported dependency key: %s", key)
+	}
 
-	ctx, err := withFetchChain(ctx, flightKey)
+	// Cache key (must be deterministic)
+	flightKey, err := makeFlightKey(repo, fetchImpl.Scope(), key, params)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, err = withFetchChain(ctx, flightKey)
 	if err != nil {
 		return nil, err
 	}
@@ -122,12 +145,31 @@ func (f *Fetcher) doFetch(ctx context.Context, repo *github.Repository, key data
 	return fetchImpl.Fetch(ctx, repo, params, f)
 }
 
-func makeFlightKey(repo *github.Repository, key data.DependencyKey, params map[string]string) string {
-	repoID := repo.GetFullName()
-	if repoID == "" {
-		repoID = repo.GetOwner().GetLogin() + "/" + repo.GetName()
+func makeFlightKey(repo *github.Repository, scope data.FetchScope, key data.DependencyKey, params map[string]string) (string, error) {
+	var prefix string
+	switch scope {
+	case data.ScopeOrg:
+		owner := strings.ToLower(repo.GetOwner().GetLogin())
+		if owner == "" {
+			return "", fmt.Errorf("Fetch: repo owner login is required for org-scoped dependency: %s", key)
+		}
+		prefix = owner
+	case data.ScopeRepo:
+		repoID := repo.GetFullName()
+		if repoID == "" {
+			owner := strings.ToLower(repo.GetOwner().GetLogin())
+			name := strings.ToLower(repo.GetName())
+			if owner == "" || name == "" {
+				return "", fmt.Errorf("Fetch: repo owner/name is required for repo-scoped dependency: %s", key)
+			}
+			repoID = owner + "/" + name
+		}
+		prefix = strings.ToLower(repoID)
+	default:
+		return "", fmt.Errorf("Fetch: unknown fetch scope %q for dependency: %s", scope, key)
 	}
-	return repoID + ":" + string(key) + ":" + stableParamsKey(params)
+
+	return prefix + ":" + string(key) + ":" + stableParamsKey(params), nil
 }
 
 func stableParamsKey(params map[string]string) string {

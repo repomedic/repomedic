@@ -17,6 +17,10 @@ func (a *allRulesetsFetcher) Key() data.DependencyKey {
 	return data.DepRepoAllRulesets
 }
 
+func (a *allRulesetsFetcher) Scope() data.FetchScope {
+	return data.ScopeRepo
+}
+
 func (a *allRulesetsFetcher) Fetch(ctx context.Context, repo *github.Repository, _ map[string]string, f *fetcher.Fetcher) (any, error) {
 	owner := repo.GetOwner().GetLogin()
 	repoName := repo.GetName()
