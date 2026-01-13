@@ -12,6 +12,8 @@ import (
 	"repomedic/internal/rules"
 	"sort"
 	"strings"
+
+	"github.com/google/go-github/v66/github"
 )
 
 func exitCodeForRun(fatal, partial, wrongs bool) int {
@@ -216,6 +218,10 @@ func (e *Engine) executePlanStream(ctx context.Context, cfg *config.Config, plan
 	budget := fetcher.NewRequestBudget()
 	f := fetcher.NewFetcher(e.Client, budget)
 
+	// Inject scanned repos list into fetcher so org-scoped dependencies
+	// (like DepReposScanned) can access it without additional API calls.
+	f.SetScannedRepos(extractReposFromPlan(plan))
+
 	// Initialize Scheduler
 	scheduler, err := NewScheduler(f, cfg.Runtime.Concurrency)
 	if err != nil {
@@ -347,6 +353,21 @@ func undeclaredDependencyAccesses(accessed []data.DependencyKey, declared []data
 	}
 	sort.Strings(out)
 	return out
+}
+
+// extractReposFromPlan extracts the list of *github.Repository from a ScanPlan.
+// This is used to inject the scanned repos into the fetcher for org-scoped dependencies.
+func extractReposFromPlan(plan *ScanPlan) []*github.Repository {
+	if plan == nil || plan.RepoPlans == nil {
+		return nil
+	}
+	repos := make([]*github.Repository, 0, len(plan.RepoPlans))
+	for _, rp := range plan.RepoPlans {
+		if rp.Repo.Repo != nil {
+			repos = append(repos, rp.Repo.Repo)
+		}
+	}
+	return repos
 }
 
 func isExplicitReposOnly(cfg *config.Config) bool {

@@ -81,6 +81,7 @@ RepoMedic audits configuration state using deterministic rules:
 - **Secret Scanning**: Verifies enablement and availability.
 - **Repository Standards**: Enforces descriptions, READMEs, and visibility settings.
 - **CODEOWNERS**: Checks for the existence of ownership definitions.
+- **Merge Method Consistency**: Ensures repositories follow a consistent merge policy.
 
 
 ---

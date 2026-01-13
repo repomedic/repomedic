@@ -15,6 +15,10 @@ func (d *defaultBranchProtectionFetcher) Key() data.DependencyKey {
 	return data.DepRepoDefaultBranchClassicProtection
 }
 
+func (d *defaultBranchProtectionFetcher) Scope() data.FetchScope {
+	return data.ScopeRepo
+}
+
 func (d *defaultBranchProtectionFetcher) Fetch(ctx context.Context, repo *github.Repository, _ map[string]string, f *fetcher.Fetcher) (any, error) {
 	branch := repo.GetDefaultBranch()
 	if branch == "" {

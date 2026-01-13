@@ -16,6 +16,10 @@ func (d *defaultBranchReadmeFetcher) Key() data.DependencyKey {
 	return data.DepRepoDefaultBranchReadme
 }
 
+func (d *defaultBranchReadmeFetcher) Scope() data.FetchScope {
+	return data.ScopeRepo
+}
+
 func (d *defaultBranchReadmeFetcher) Fetch(ctx context.Context, repo *github.Repository, _ map[string]string, f *fetcher.Fetcher) (any, error) {
 	branch := repo.GetDefaultBranch()
 	if branch == "" {

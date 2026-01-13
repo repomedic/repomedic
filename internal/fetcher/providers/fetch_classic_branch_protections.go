@@ -19,6 +19,10 @@ func (f *classicBranchProtectionsFetcher) Key() data.DependencyKey {
 	return data.DepRepoClassicBranchProtections
 }
 
+func (f *classicBranchProtectionsFetcher) Scope() data.FetchScope {
+	return data.ScopeRepo
+}
+
 func (f *classicBranchProtectionsFetcher) Fetch(ctx context.Context, repo *github.Repository, _ map[string]string, fch *fetcher.Fetcher) (any, error) {
 	owner := repo.GetOwner().GetLogin()
 	repoName := repo.GetName()

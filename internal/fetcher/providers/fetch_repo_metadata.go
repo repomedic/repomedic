@@ -12,6 +12,8 @@ type repoMetadataFetcher struct{}
 
 func (r *repoMetadataFetcher) Key() data.DependencyKey { return data.DepRepoMetadata }
 
+func (r *repoMetadataFetcher) Scope() data.FetchScope { return data.ScopeRepo }
+
 func (r *repoMetadataFetcher) Fetch(ctx context.Context, repo *github.Repository, _ map[string]string, f *fetcher.Fetcher) (any, error) {
 	if err := f.Budget().Acquire(ctx, 1); err != nil {
 		return nil, err

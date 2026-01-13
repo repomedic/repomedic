@@ -25,6 +25,10 @@ func (p *protectedBranchesDeletionStatusFetcher) Key() data.DependencyKey {
 	return data.DepRepoProtectedBranchesDeletionStatus
 }
 
+func (p *protectedBranchesDeletionStatusFetcher) Scope() data.FetchScope {
+	return data.ScopeRepo
+}
+
 func (p *protectedBranchesDeletionStatusFetcher) Fetch(ctx context.Context, repo *github.Repository, _ map[string]string, f *fetcher.Fetcher) (any, error) {
 	owner := repo.GetOwner().GetLogin()
 	repoName := repo.GetName()

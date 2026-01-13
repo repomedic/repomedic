@@ -16,6 +16,10 @@ func (d *defaultBranchCodeownersFetcher) Key() data.DependencyKey {
 	return data.DepRepoDefaultBranchCodeowners
 }
 
+func (d *defaultBranchCodeownersFetcher) Scope() data.FetchScope {
+	return data.ScopeRepo
+}
+
 func (d *defaultBranchCodeownersFetcher) Fetch(ctx context.Context, repo *github.Repository, _ map[string]string, f *fetcher.Fetcher) (any, error) {
 	branch := repo.GetDefaultBranch()
 	if branch == "" {
