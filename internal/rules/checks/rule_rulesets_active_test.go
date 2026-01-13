@@ -4,6 +4,7 @@ import (
 	"context"
 	"repomedic/internal/data"
 	"repomedic/internal/rules"
+	"strings"
 	"testing"
 
 	"github.com/google/go-github/v66/github"
@@ -147,25 +148,11 @@ func TestRulesetsActiveRule_Evaluate(t *testing.T) {
 			if res.Status != tt.expectedStatus {
 				t.Fatalf("want status %v, got %v (message: %s)", tt.expectedStatus, res.Status, res.Message)
 			}
-			if tt.wantMsgContain != "" && !contains(res.Message, tt.wantMsgContain) {
+			if tt.wantMsgContain != "" && !strings.Contains(res.Message, tt.wantMsgContain) {
 				t.Fatalf("want message containing %q, got %q", tt.wantMsgContain, res.Message)
 			}
 		})
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
-		(len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)))
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
 
 func TestRulesetsActiveRule_ID(t *testing.T) {

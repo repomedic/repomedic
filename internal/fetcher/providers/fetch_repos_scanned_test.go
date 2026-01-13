@@ -2,6 +2,7 @@ package providers_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"repomedic/internal/data"
@@ -88,7 +89,7 @@ func TestReposScannedFetcher_WithoutInjectedList_ReturnsError(t *testing.T) {
 	}
 
 	expectedMsg := "scanned repos not available"
-	if err.Error() != expectedMsg && !contains(err.Error(), "scanned repos not available") {
+	if err.Error() != expectedMsg && !strings.Contains(err.Error(), "scanned repos not available") {
 		t.Errorf("error = %q, want to contain %q", err.Error(), expectedMsg)
 	}
 }
@@ -117,17 +118,4 @@ func TestReposScannedFetcher_WithEmptyList(t *testing.T) {
 	if len(repos) != 0 {
 		t.Errorf("got %d repos, want 0", len(repos))
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
-}
-
-func containsHelper(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
