@@ -2,32 +2,15 @@ package checks
 
 import (
 	"context"
-	"encoding/json"
 	"repomedic/internal/data"
 	"repomedic/internal/rules"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
-	repo := &github.Repository{FullName: github.String("acme/repo"), DefaultBranch: github.String("main")}
-
-	okParamsBytes, _ := json.Marshal(github.PullRequestRuleParameters{
-		RequiredApprovingReviewCount: 1,
-		RequireLastPushApproval:      true,
-		RequireCodeOwnerReview:       true,
-		DismissStaleReviewsOnPush:    true,
-	})
-	okRaw := json.RawMessage(okParamsBytes)
-
-	badParamsBytes, _ := json.Marshal(github.PullRequestRuleParameters{
-		RequiredApprovingReviewCount: 0,
-		RequireLastPushApproval:      false,
-		RequireCodeOwnerReview:       false,
-		DismissStaleReviewsOnPush:    false,
-	})
-	badRaw := json.RawMessage(badParamsBytes)
+	repo := &github.Repository{FullName: github.Ptr("acme/repo"), DefaultBranch: github.Ptr("main")}
 
 	tests := []struct {
 		name           string
@@ -46,7 +29,7 @@ func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
 					RequireCodeOwnerReviews:      true,
 					DismissStaleReviews:          true,
 				}},
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusPass,
 		},
@@ -61,7 +44,7 @@ func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
 					RequireCodeOwnerReviews:      true,
 					DismissStaleReviews:          true,
 				}},
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusFail,
 		},
@@ -76,7 +59,7 @@ func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
 					RequireCodeOwnerReviews:      true,
 					DismissStaleReviews:          true,
 				}},
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusFail,
 		},
@@ -91,7 +74,7 @@ func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
 					RequireCodeOwnerReviews:      false,
 					DismissStaleReviews:          true,
 				}},
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusFail,
 		},
@@ -106,7 +89,7 @@ func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
 					RequireCodeOwnerReviews:      true,
 					DismissStaleReviews:          false,
 				}},
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusFail,
 		},
@@ -116,10 +99,16 @@ func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
 			data: map[data.DependencyKey]any{
 				data.DepRepoMetadata:                       repo,
 				data.DepRepoDefaultBranchClassicProtection: nil,
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{{
-					Type:       "pull_request",
-					Parameters: &okRaw,
-				}},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{
+					PullRequest: []*github.PullRequestBranchRule{{
+						Parameters: github.PullRequestRuleParameters{
+							RequiredApprovingReviewCount: 1,
+							RequireLastPushApproval:      true,
+							RequireCodeOwnerReview:       true,
+							DismissStaleReviewsOnPush:    true,
+						},
+					}},
+				},
 			},
 			expectedStatus: rules.StatusPass,
 		},
@@ -129,10 +118,16 @@ func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
 			data: map[data.DependencyKey]any{
 				data.DepRepoMetadata:                       repo,
 				data.DepRepoDefaultBranchClassicProtection: nil,
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{{
-					Type:       "pull_request",
-					Parameters: &badRaw,
-				}},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{
+					PullRequest: []*github.PullRequestBranchRule{{
+						Parameters: github.PullRequestRuleParameters{
+							RequiredApprovingReviewCount: 0,
+							RequireLastPushApproval:      false,
+							RequireCodeOwnerReview:       false,
+							DismissStaleReviewsOnPush:    false,
+						},
+					}},
+				},
 			},
 			expectedStatus: rules.StatusFail,
 		},
@@ -149,7 +144,7 @@ func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
 					RequireCodeOwnerReviews:      false,
 					DismissStaleReviews:          true,
 				}},
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusPass,
 		},
@@ -166,7 +161,7 @@ func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
 					RequireCodeOwnerReviews:      true,
 					DismissStaleReviews:          true,
 				}},
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusFail,
 		},
@@ -183,7 +178,7 @@ func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
 					RequireCodeOwnerReviews:      true,
 					DismissStaleReviews:          true,
 				}},
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusPass,
 		},
@@ -205,7 +200,7 @@ func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
 			data: map[data.DependencyKey]any{
 				data.DepRepoMetadata:                       repo,
 				data.DepRepoDefaultBranchClassicProtection: "nope",
-				data.DepRepoDefaultBranchEffectiveRules:    []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules:    &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusError,
 		},
@@ -220,17 +215,16 @@ func TestDefaultBranchPRReviewSettingsRule_Evaluate(t *testing.T) {
 			expectedStatus: rules.StatusError,
 		},
 		{
-			name:      "ERROR pull_request rule missing parameters",
+			name:      "ERROR pull_request rule with nil rule entry",
 			configure: map[string]string{},
 			data: map[data.DependencyKey]any{
 				data.DepRepoMetadata:                       repo,
 				data.DepRepoDefaultBranchClassicProtection: nil,
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{{
-					Type:       "pull_request",
-					Parameters: nil,
-				}},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{
+					PullRequest: []*github.PullRequestBranchRule{nil},
+				},
 			},
-			expectedStatus: rules.StatusError,
+			expectedStatus: rules.StatusFail,
 		},
 	}
 

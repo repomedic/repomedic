@@ -9,7 +9,7 @@ import (
 	"repomedic/internal/fetcher"
 	_ "repomedic/internal/fetcher/providers"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestMergeBaselineFetcher_Registration(t *testing.T) {
@@ -93,8 +93,8 @@ func TestReposMergeConventionFetcher_EmptyRepos(t *testing.T) {
 	f.SetScannedRepos([]*github.Repository{})
 
 	repo := &github.Repository{
-		Owner: &github.User{Login: github.String("org")},
-		Name:  github.String("repo1"),
+		Owner: &github.User{Login: github.Ptr("org")},
+		Name:  github.Ptr("repo1"),
 	}
 
 	result, err := f.Fetch(context.Background(), repo, data.DepReposMergeConvention, nil)
@@ -118,38 +118,38 @@ func TestReposMergeConventionFetcher_WithRepos(t *testing.T) {
 	// Inject scanned repos with merge method settings.
 	scannedRepos := []*github.Repository{
 		{
-			FullName:         github.String("org/repo1"),
-			Owner:            &github.User{Login: github.String("org")},
-			Name:             github.String("repo1"),
-			DefaultBranch:    github.String("main"),
-			AllowMergeCommit: github.Bool(false),
-			AllowSquashMerge: github.Bool(true),
-			AllowRebaseMerge: github.Bool(false),
+			FullName:         github.Ptr("org/repo1"),
+			Owner:            &github.User{Login: github.Ptr("org")},
+			Name:             github.Ptr("repo1"),
+			DefaultBranch:    github.Ptr("main"),
+			AllowMergeCommit: github.Ptr(false),
+			AllowSquashMerge: github.Ptr(true),
+			AllowRebaseMerge: github.Ptr(false),
 		},
 		{
-			FullName:         github.String("org/repo2"),
-			Owner:            &github.User{Login: github.String("org")},
-			Name:             github.String("repo2"),
-			DefaultBranch:    github.String("main"),
-			AllowMergeCommit: github.Bool(false),
-			AllowSquashMerge: github.Bool(true),
-			AllowRebaseMerge: github.Bool(false),
+			FullName:         github.Ptr("org/repo2"),
+			Owner:            &github.User{Login: github.Ptr("org")},
+			Name:             github.Ptr("repo2"),
+			DefaultBranch:    github.Ptr("main"),
+			AllowMergeCommit: github.Ptr(false),
+			AllowSquashMerge: github.Ptr(true),
+			AllowRebaseMerge: github.Ptr(false),
 		},
 		{
-			FullName:         github.String("org/repo3"),
-			Owner:            &github.User{Login: github.String("org")},
-			Name:             github.String("repo3"),
-			DefaultBranch:    github.String("main"),
-			AllowMergeCommit: github.Bool(true),
-			AllowSquashMerge: github.Bool(true),
-			AllowRebaseMerge: github.Bool(true),
+			FullName:         github.Ptr("org/repo3"),
+			Owner:            &github.User{Login: github.Ptr("org")},
+			Name:             github.Ptr("repo3"),
+			DefaultBranch:    github.Ptr("main"),
+			AllowMergeCommit: github.Ptr(true),
+			AllowSquashMerge: github.Ptr(true),
+			AllowRebaseMerge: github.Ptr(true),
 		},
 	}
 	f.SetScannedRepos(scannedRepos)
 
 	repo := &github.Repository{
-		Owner: &github.User{Login: github.String("org")},
-		Name:  github.String("repo1"),
+		Owner: &github.User{Login: github.Ptr("org")},
+		Name:  github.Ptr("repo1"),
 	}
 
 	result, err := f.Fetch(context.Background(), repo, data.DepReposMergeConvention, nil)

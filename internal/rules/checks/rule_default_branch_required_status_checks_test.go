@@ -2,39 +2,38 @@ package checks
 
 import (
 	"context"
-	"encoding/json"
 	"repomedic/internal/data"
 	"repomedic/internal/rules"
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestDefaultBranchRequiredStatusChecks_Evaluate(t *testing.T) {
 	rule := &DefaultBranchRequiredStatusChecks{}
 	repo := &github.Repository{
-		FullName:      github.String("org/repo"),
-		DefaultBranch: github.String("main"),
+		FullName:      github.Ptr("org/repo"),
+		DefaultBranch: github.Ptr("main"),
 	}
 
-	makeRule := func(checks []string) *github.RepositoryRule {
-		params := requiredStatusChecksParams{
-			RequiredStatusChecks: make([]struct {
-				Context string `json:"context"`
-			}, len(checks)),
-		}
+	makeBranchRules := func(checks []string) *github.BranchRules {
+		statusChecks := make([]*github.RuleStatusCheck, len(checks))
 		for i, c := range checks {
-			params.RequiredStatusChecks[i].Context = c
+			statusChecks[i] = &github.RuleStatusCheck{Context: c}
 		}
-		b, _ := json.Marshal(params)
-		raw := json.RawMessage(b)
-		return &github.RepositoryRule{
-			Type:          "required_status_checks",
-			Parameters:    &raw,
-			RulesetSource: "test",
+		return &github.BranchRules{
+			RequiredStatusChecks: []*github.RequiredStatusChecksBranchRule{
+				{
+					BranchRuleMetadata: github.BranchRuleMetadata{
+						RulesetSource: "test",
+					},
+					Parameters: github.RequiredStatusChecksRuleParameters{
+						RequiredStatusChecks: statusChecks,
+					},
+				},
+			},
 		}
-
 	}
 
 	tests := []struct {
@@ -61,7 +60,7 @@ func TestDefaultBranchRequiredStatusChecks_Evaluate(t *testing.T) {
 		{
 			name: "no rules",
 			data: map[data.DependencyKey]any{
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusFail,
 			expectedMsg:    "Default branch does not require status checks",
@@ -69,9 +68,7 @@ func TestDefaultBranchRequiredStatusChecks_Evaluate(t *testing.T) {
 		{
 			name: "rule present, default config (allow_any=true, min_count=1), 1 check",
 			data: map[data.DependencyKey]any{
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{
-					makeRule([]string{"ci/test"}),
-				},
+				data.DepRepoDefaultBranchEffectiveRules: makeBranchRules([]string{"ci/test"}),
 			},
 			expectedStatus: rules.StatusPass,
 			expectedMsg:    "Default branch requires status checks",
@@ -82,9 +79,7 @@ func TestDefaultBranchRequiredStatusChecks_Evaluate(t *testing.T) {
 				"min_count": "2",
 			},
 			data: map[data.DependencyKey]any{
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{
-					makeRule([]string{"ci/test"}),
-				},
+				data.DepRepoDefaultBranchEffectiveRules: makeBranchRules([]string{"ci/test"}),
 			},
 			expectedStatus: rules.StatusFail,
 			expectedMsg:    "only 1 are configured",
@@ -96,9 +91,7 @@ func TestDefaultBranchRequiredStatusChecks_Evaluate(t *testing.T) {
 				"required":  "ci/test",
 			},
 			data: map[data.DependencyKey]any{
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{
-					makeRule([]string{"ci/test"}),
-				},
+				data.DepRepoDefaultBranchEffectiveRules: makeBranchRules([]string{"ci/test"}),
 			},
 			expectedStatus: rules.StatusPass,
 			expectedMsg:    "Default branch requires all specified status checks",
@@ -110,9 +103,7 @@ func TestDefaultBranchRequiredStatusChecks_Evaluate(t *testing.T) {
 				"required":  "ci/test",
 			},
 			data: map[data.DependencyKey]any{
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{
-					makeRule([]string{"other"}),
-				},
+				data.DepRepoDefaultBranchEffectiveRules: makeBranchRules([]string{"other"}),
 			},
 			expectedStatus: rules.StatusFail,
 			expectedMsg:    "missing required status checks: ci/test",
@@ -124,9 +115,7 @@ func TestDefaultBranchRequiredStatusChecks_Evaluate(t *testing.T) {
 				"required":  "CI/TEST",
 			},
 			data: map[data.DependencyKey]any{
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{
-					makeRule([]string{"ci/test"}),
-				},
+				data.DepRepoDefaultBranchEffectiveRules: makeBranchRules([]string{"ci/test"}),
 			},
 			expectedStatus: rules.StatusPass,
 			expectedMsg:    "Default branch requires all specified status checks",
@@ -138,9 +127,7 @@ func TestDefaultBranchRequiredStatusChecks_Evaluate(t *testing.T) {
 				"required":  "ci/test, ci/lint",
 			},
 			data: map[data.DependencyKey]any{
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{
-					makeRule([]string{"ci/test"}),
-				},
+				data.DepRepoDefaultBranchEffectiveRules: makeBranchRules([]string{"ci/test"}),
 			},
 			expectedStatus: rules.StatusFail,
 			expectedMsg:    "missing required status checks: ci/lint",

@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestConsistentDefaultBranchMergeMethodsRule_Evaluate(t *testing.T) {
-	repo := &github.Repository{FullName: github.String("acme/repo"), DefaultBranch: github.String("main")}
+	repo := &github.Repository{FullName: github.Ptr("acme/repo"), DefaultBranch: github.Ptr("main")}
 
 	tests := []struct {
 		name           string
@@ -381,7 +381,7 @@ func TestConsistentDefaultBranchMergeMethodsRule_Configure(t *testing.T) {
 }
 
 func TestConsistentDefaultBranchMergeMethodsRule_Dependencies(t *testing.T) {
-	repo := &github.Repository{FullName: github.String("acme/repo")}
+	repo := &github.Repository{FullName: github.Ptr("acme/repo")}
 
 	t.Run("without required_configuration includes baseline", func(t *testing.T) {
 		rule := &ConsistentDefaultBranchMergeMethodsRule{}
@@ -444,7 +444,7 @@ func TestConsistentDefaultBranchMergeMethodsRule_Dependencies(t *testing.T) {
 }
 
 func TestConsistentDefaultBranchMergeMethodsRule_Metadata(t *testing.T) {
-	repo := &github.Repository{FullName: github.String("acme/repo"), DefaultBranch: github.String("main")}
+	repo := &github.Repository{FullName: github.Ptr("acme/repo"), DefaultBranch: github.Ptr("main")}
 	rule := &ConsistentDefaultBranchMergeMethodsRule{}
 
 	t.Run("PASS result includes metadata", func(t *testing.T) {

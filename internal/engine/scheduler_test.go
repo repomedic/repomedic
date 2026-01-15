@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func newTestScheduler(t *testing.T, mux *http.ServeMux, concurrency int) *Scheduler {
@@ -58,10 +58,10 @@ func TestScheduler_Execute_Stream_SingleRepoSuccess(t *testing.T) {
 		ID:   1,
 		Name: "repo",
 		Repo: &github.Repository{
-			ID:       github.Int64(1),
-			Name:     github.String("repo"),
-			Owner:    &github.User{Login: github.String("owner")},
-			FullName: github.String("owner/repo"),
+			ID:       github.Ptr(int64(1)),
+			Name:     github.Ptr("repo"),
+			Owner:    &github.User{Login: github.Ptr("owner")},
+			FullName: github.Ptr("owner/repo"),
 		},
 	}
 
@@ -126,10 +126,10 @@ func TestScheduler_Execute_Stream_SurfacesDependencyErrors(t *testing.T) {
 		ID:   1,
 		Name: "repo",
 		Repo: &github.Repository{
-			ID:       github.Int64(1),
-			Name:     github.String("repo"),
-			Owner:    &github.User{Login: github.String("owner")},
-			FullName: github.String("owner/repo"),
+			ID:       github.Ptr(int64(1)),
+			Name:     github.Ptr("repo"),
+			Owner:    &github.User{Login: github.Ptr("owner")},
+			FullName: github.Ptr("owner/repo"),
 		},
 	}
 
@@ -205,10 +205,10 @@ func TestScheduler_Execute_Stream_NReposExactlyNResults_AndChannelsClose(t *test
 			ID:   i,
 			Name: fmt.Sprintf("repo%d", i),
 			Repo: &github.Repository{
-				ID:       github.Int64(i),
-				Name:     github.String(fmt.Sprintf("repo%d", i)),
-				Owner:    &github.User{Login: github.String("owner")},
-				FullName: github.String(fmt.Sprintf("owner/repo%d", i)),
+				ID:       github.Ptr(i),
+				Name:     github.Ptr(fmt.Sprintf("repo%d", i)),
+				Owner:    &github.User{Login: github.Ptr("owner")},
+				FullName: github.Ptr(fmt.Sprintf("owner/repo%d", i)),
 			},
 		}
 		rp := &RepoPlan{
@@ -273,10 +273,10 @@ func TestScheduler_Execute_Stream_CancellationStopsPromptly(t *testing.T) {
 			ID:   i,
 			Name: fmt.Sprintf("repo%d", i),
 			Repo: &github.Repository{
-				ID:       github.Int64(i),
-				Name:     github.String(fmt.Sprintf("repo%d", i)),
-				Owner:    &github.User{Login: github.String("owner")},
-				FullName: github.String(fmt.Sprintf("owner/repo%d", i)),
+				ID:       github.Ptr(i),
+				Name:     github.Ptr(fmt.Sprintf("repo%d", i)),
+				Owner:    &github.User{Login: github.Ptr("owner")},
+				FullName: github.Ptr(fmt.Sprintf("owner/repo%d", i)),
 			},
 		}
 		rp := &RepoPlan{
@@ -352,10 +352,10 @@ func TestScheduler_Execute_Stream_FailFastViaContextCancellation(t *testing.T) {
 			ID:   i,
 			Name: fmt.Sprintf("repo%d", i),
 			Repo: &github.Repository{
-				ID:       github.Int64(i),
-				Name:     github.String(fmt.Sprintf("repo%d", i)),
-				Owner:    &github.User{Login: github.String("owner")},
-				FullName: github.String(fmt.Sprintf("owner/repo%d", i)),
+				ID:       github.Ptr(i),
+				Name:     github.Ptr(fmt.Sprintf("repo%d", i)),
+				Owner:    &github.User{Login: github.Ptr("owner")},
+				FullName: github.Ptr(fmt.Sprintf("owner/repo%d", i)),
 			},
 		}
 		rp := &RepoPlan{
@@ -415,10 +415,10 @@ func TestScheduler_Execute_Stream_FatalNilRepoPlanDoesNotPanic(t *testing.T) {
 		ID:   1,
 		Name: "repo1",
 		Repo: &github.Repository{
-			ID:       github.Int64(1),
-			Name:     github.String("repo1"),
-			Owner:    &github.User{Login: github.String("owner")},
-			FullName: github.String("owner/repo1"),
+			ID:       github.Ptr(int64(1)),
+			Name:     github.Ptr("repo1"),
+			Owner:    &github.User{Login: github.Ptr("owner")},
+			FullName: github.Ptr("owner/repo1"),
 		},
 	}
 	plan.RepoPlans[1] = &RepoPlan{

@@ -1,6 +1,6 @@
 package rules
 
-import "github.com/google/go-github/v66/github"
+import "github.com/google/go-github/v81/github"
 
 func RepoFullName(repo *github.Repository) string {
 	if repo == nil {

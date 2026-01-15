@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type mockEvalRule struct {
@@ -996,8 +996,8 @@ func TestEvaluateStreamingResults_StreamsPerRepoCompletion(t *testing.T) {
 	hit := make(chan struct{}, 1)
 	rule := &signalOnFirstEvalRule{id: "signal-rule", hit: hit}
 
-	repo1 := RepositoryRef{Owner: "acme", Name: "repo1", ID: 1, Repo: &github.Repository{ID: github.Int64(1)}}
-	repo2 := RepositoryRef{Owner: "acme", Name: "repo2", ID: 2, Repo: &github.Repository{ID: github.Int64(2)}}
+	repo1 := RepositoryRef{Owner: "acme", Name: "repo1", ID: 1, Repo: &github.Repository{ID: github.Ptr(int64(1))}}
+	repo2 := RepositoryRef{Owner: "acme", Name: "repo2", ID: 2, Repo: &github.Repository{ID: github.Ptr(int64(2))}}
 	plan := NewScanPlan()
 	plan.RepoPlans[1] = &RepoPlan{Repo: repo1, Rules: []rules.Rule{rule}}
 	plan.RepoPlans[2] = &RepoPlan{Repo: repo2, Rules: []rules.Rule{rule}}
@@ -1018,7 +1018,7 @@ func TestEvaluateStreamingResults_StreamsPerRepoCompletion(t *testing.T) {
 	resCh <- RepoExecutionResult{
 		RepoID: 1,
 		Data: data.NewMapDataContext(map[data.DependencyKey]any{
-			data.DepRepoMetadata: &github.Repository{ID: github.Int64(1)},
+			data.DepRepoMetadata: &github.Repository{ID: github.Ptr(int64(1))},
 		}),
 		DepErrs: map[data.DependencyKey]error{},
 	}
@@ -1057,7 +1057,7 @@ func TestEvaluateStreamingResults_StreamsPerRepoCompletion(t *testing.T) {
 	resCh <- RepoExecutionResult{
 		RepoID: 2,
 		Data: data.NewMapDataContext(map[data.DependencyKey]any{
-			data.DepRepoMetadata: &github.Repository{ID: github.Int64(2)},
+			data.DepRepoMetadata: &github.Repository{ID: github.Ptr(int64(2))},
 		}),
 		DepErrs: map[data.DependencyKey]error{},
 	}
@@ -1097,7 +1097,7 @@ func TestEvaluateStreamingResults_ErrorsOnUndeclaredDependencyAccess(t *testing.
 	cfg.Runtime.Verbose = false
 
 	rule := &undeclaredDepAccessRule{id: "undeclared-dep"}
-	repo := RepositoryRef{Owner: "acme", Name: "repo", ID: 1, Repo: &github.Repository{ID: github.Int64(1)}}
+	repo := RepositoryRef{Owner: "acme", Name: "repo", ID: 1, Repo: &github.Repository{ID: github.Ptr(int64(1))}}
 	plan := NewScanPlan()
 	plan.RepoPlans[1] = &RepoPlan{Repo: repo, Rules: []rules.Rule{rule}}
 
@@ -1117,7 +1117,7 @@ func TestEvaluateStreamingResults_ErrorsOnUndeclaredDependencyAccess(t *testing.
 	resCh <- RepoExecutionResult{
 		RepoID: 1,
 		Data: data.NewMapDataContext(map[data.DependencyKey]any{
-			data.DepRepoMetadata: &github.Repository{ID: github.Int64(1)},
+			data.DepRepoMetadata: &github.Repository{ID: github.Ptr(int64(1))},
 		}),
 		DepErrs: map[data.DependencyKey]error{},
 	}

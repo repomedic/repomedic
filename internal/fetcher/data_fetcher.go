@@ -7,7 +7,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type DataFetcher interface {

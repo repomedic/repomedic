@@ -10,7 +10,7 @@ import (
 	"repomedic/internal/fetcher"
 	gh "repomedic/internal/github"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 // Keep GitHub calls bounded.
@@ -232,7 +232,9 @@ func fetchRulesetDeletionScopes(ctx context.Context, owner, repo string, f *fetc
 		return nil, false, err
 	}
 	// includesParents=true to cover org-level rulesets applying to this repo.
-	rulesets, resp, err := f.Client().Client.Repositories.GetAllRulesets(ctx, owner, repo, true)
+	includesParents := true
+	opts := &github.RepositoryListRulesetsOptions{IncludesParents: &includesParents}
+	rulesets, resp, err := f.Client().Client.Repositories.GetAllRulesets(ctx, owner, repo, opts)
 	if resp != nil {
 		f.Budget().UpdateFromResponse(resp.Response)
 	}
@@ -251,11 +253,11 @@ func fetchRulesetDeletionScopes(ctx context.Context, owner, repo string, f *fetc
 			continue
 		}
 		// Only branch-targeting rulesets; skip tags/push.
-		if rs.Target != nil && !strings.EqualFold(*rs.Target, "branch") {
+		if rs.Target != nil && !strings.EqualFold(string(*rs.Target), "branch") {
 			continue
 		}
 		// Only active rulesets are enforced. "evaluate" is non-enforcing.
-		if !strings.EqualFold(strings.TrimSpace(rs.Enforcement), "active") {
+		if !strings.EqualFold(strings.TrimSpace(string(rs.Enforcement)), "active") {
 			continue
 		}
 
@@ -320,19 +322,12 @@ func fetchRulesetDeletionScopes(ctx context.Context, owner, repo string, f *fetc
 	return items, false, nil
 }
 
-func rulesetBlocksDeletion(rs *github.Ruleset) bool {
-	if rs == nil {
+func rulesetBlocksDeletion(rs *github.RepositoryRuleset) bool {
+	if rs == nil || rs.Rules == nil {
 		return false
 	}
-	for _, rule := range rs.Rules {
-		if rule == nil {
-			continue
-		}
-		if strings.EqualFold(rule.Type, "deletion") {
-			return true
-		}
-	}
-	return false
+	// In v81, the Deletion rule is a field, not a type string
+	return rs.Rules.Deletion != nil
 }
 
 func init() {

@@ -7,15 +7,15 @@ import (
 	"repomedic/internal/rules"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestBranchProtectionExistsRule_Evaluate(t *testing.T) {
 	repo := &github.Repository{
-		Owner:         &github.User{Login: github.String("test-org")},
-		Name:          github.String("test-repo"),
-		FullName:      github.String("test-org/test-repo"),
-		DefaultBranch: github.String("main"),
+		Owner:         &github.User{Login: github.Ptr("test-org")},
+		Name:          github.Ptr("test-repo"),
+		FullName:      github.Ptr("test-org/test-repo"),
+		DefaultBranch: github.Ptr("main"),
 	}
 
 	tests := []struct {
@@ -140,9 +140,9 @@ func TestBranchProtectionExistsRule_Metadata(t *testing.T) {
 func TestBranchProtectionExistsRule_Dependencies(t *testing.T) {
 	rule := &BranchProtectionExistsRule{}
 	repo := &github.Repository{
-		Owner:    &github.User{Login: github.String("test-org")},
-		Name:     github.String("test-repo"),
-		FullName: github.String("test-org/test-repo"),
+		Owner:    &github.User{Login: github.Ptr("test-org")},
+		Name:     github.Ptr("test-repo"),
+		FullName: github.Ptr("test-org/test-repo"),
 	}
 
 	deps, err := rule.Dependencies(context.Background(), repo)

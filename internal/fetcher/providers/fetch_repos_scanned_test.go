@@ -10,7 +10,7 @@ import (
 	_ "repomedic/internal/fetcher/providers"
 	gh "repomedic/internal/github"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func newTestFetcher(t *testing.T) *fetcher.Fetcher {
@@ -42,15 +42,15 @@ func TestReposScannedFetcher_WithInjectedList(t *testing.T) {
 
 	// Inject scanned repos
 	expectedRepos := []*github.Repository{
-		{FullName: github.String("org/repo1")},
-		{FullName: github.String("org/repo2")},
+		{FullName: github.Ptr("org/repo1")},
+		{FullName: github.Ptr("org/repo2")},
 	}
 	f.SetScannedRepos(expectedRepos)
 
 	// Fetch using a representative repo (the key is org-scoped, so repo is just context)
 	repo := &github.Repository{
-		Owner: &github.User{Login: github.String("org")},
-		Name:  github.String("repo1"),
+		Owner: &github.User{Login: github.Ptr("org")},
+		Name:  github.Ptr("repo1"),
 	}
 
 	result, err := f.Fetch(context.Background(), repo, data.DepReposScanned, nil)
@@ -79,8 +79,8 @@ func TestReposScannedFetcher_WithoutInjectedList_ReturnsError(t *testing.T) {
 	// Do NOT call SetScannedRepos
 
 	repo := &github.Repository{
-		Owner: &github.User{Login: github.String("org")},
-		Name:  github.String("repo1"),
+		Owner: &github.User{Login: github.Ptr("org")},
+		Name:  github.Ptr("repo1"),
 	}
 
 	_, err := f.Fetch(context.Background(), repo, data.DepReposScanned, nil)
@@ -101,8 +101,8 @@ func TestReposScannedFetcher_WithEmptyList(t *testing.T) {
 	f.SetScannedRepos([]*github.Repository{})
 
 	repo := &github.Repository{
-		Owner: &github.User{Login: github.String("org")},
-		Name:  github.String("repo1"),
+		Owner: &github.User{Login: github.Ptr("org")},
+		Name:  github.Ptr("repo1"),
 	}
 
 	result, err := f.Fetch(context.Background(), repo, data.DepReposScanned, nil)

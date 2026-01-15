@@ -4,9 +4,8 @@ import (
 	"context"
 	"repomedic/internal/data"
 	"repomedic/internal/rules"
-	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type DefaultBranchNoForcePushRule struct{}
@@ -109,18 +108,14 @@ func effectiveRulesBlockForcePush(dc data.DataContext) (bool, string) {
 		return false, ""
 	}
 
-	rules, ok := val.([]*github.RepositoryRule)
+	rules, ok := val.(*github.BranchRules)
 	if !ok {
 		return false, "Invalid dependency type"
 	}
 
-	for _, rule := range rules {
-		if rule == nil {
-			continue
-		}
-		if strings.EqualFold(rule.Type, "non_fast_forward") {
-			return true, ""
-		}
+	// In v81, NonFastForward is a slice; if non-empty, force push is blocked
+	if len(rules.NonFastForward) > 0 {
+		return true, ""
 	}
 	return false, ""
 }

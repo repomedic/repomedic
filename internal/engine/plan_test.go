@@ -6,7 +6,7 @@ import (
 	"repomedic/internal/rules"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type mockRule struct {
@@ -31,7 +31,7 @@ func TestScanPlan_Deduplication(t *testing.T) {
 	repo := RepositoryRef{
 		ID:   1,
 		Name: "test-repo",
-		Repo: &github.Repository{ID: github.Int64(1)},
+		Repo: &github.Repository{ID: github.Ptr(int64(1))},
 	}
 
 	plan := NewScanPlan()
@@ -90,7 +90,7 @@ func TestScanPlan_AddRepo_FailsFastOnNilInputs(t *testing.T) {
 		ID:    1,
 		Owner: "o",
 		Name:  "n",
-		Repo:  &github.Repository{ID: github.Int64(1)},
+		Repo:  &github.Repository{ID: github.Ptr(int64(1))},
 	}
 
 	t.Run("nil context", func(t *testing.T) {

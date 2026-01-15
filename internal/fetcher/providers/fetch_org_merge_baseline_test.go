@@ -5,7 +5,7 @@ import (
 
 	"repomedic/internal/data/models"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestDetermineTargetRef(t *testing.T) {
@@ -22,31 +22,31 @@ func TestDetermineTargetRef(t *testing.T) {
 		{
 			name: "single repo with main",
 			repos: []*github.Repository{
-				{DefaultBranch: github.String("main")},
+				{DefaultBranch: github.Ptr("main")},
 			},
 			want: "refs/heads/main",
 		},
 		{
 			name: "single repo with master",
 			repos: []*github.Repository{
-				{DefaultBranch: github.String("master")},
+				{DefaultBranch: github.Ptr("master")},
 			},
 			want: "refs/heads/master",
 		},
 		{
 			name: "main is most common",
 			repos: []*github.Repository{
-				{DefaultBranch: github.String("main")},
-				{DefaultBranch: github.String("main")},
-				{DefaultBranch: github.String("master")},
+				{DefaultBranch: github.Ptr("main")},
+				{DefaultBranch: github.Ptr("main")},
+				{DefaultBranch: github.Ptr("master")},
 			},
 			want: "refs/heads/main",
 		},
 		{
 			name: "tie breaks lexicographically",
 			repos: []*github.Repository{
-				{DefaultBranch: github.String("main")},
-				{DefaultBranch: github.String("develop")},
+				{DefaultBranch: github.Ptr("main")},
+				{DefaultBranch: github.Ptr("develop")},
 			},
 			want: "refs/heads/develop", // 'd' < 'm'
 		},
@@ -54,7 +54,7 @@ func TestDetermineTargetRef(t *testing.T) {
 			name: "nil repos are skipped",
 			repos: []*github.Repository{
 				nil,
-				{DefaultBranch: github.String("main")},
+				{DefaultBranch: github.Ptr("main")},
 				nil,
 			},
 			want: "refs/heads/main",
@@ -62,8 +62,8 @@ func TestDetermineTargetRef(t *testing.T) {
 		{
 			name: "repos with empty default branch are skipped",
 			repos: []*github.Repository{
-				{DefaultBranch: github.String("")},
-				{DefaultBranch: github.String("main")},
+				{DefaultBranch: github.Ptr("")},
+				{DefaultBranch: github.Ptr("main")},
 			},
 			want: "refs/heads/main",
 		},
@@ -116,49 +116,51 @@ func TestRefMatchesPattern(t *testing.T) {
 
 func TestFilterApplicableOrgRulesets(t *testing.T) {
 	targetRef := "refs/heads/main"
+	branchTarget := github.RulesetTargetBranch
+	tagTarget := github.RulesetTargetTag
 
-	activeRuleset := &github.Ruleset{
+	activeRuleset := &github.RepositoryRuleset{
 		Name:        "active-ruleset",
-		Enforcement: "active",
-		Target:      github.String("branch"),
+		Enforcement: github.RulesetEnforcementActive,
+		Target:      &branchTarget,
 	}
 
-	disabledRuleset := &github.Ruleset{
+	disabledRuleset := &github.RepositoryRuleset{
 		Name:        "disabled-ruleset",
-		Enforcement: "disabled",
-		Target:      github.String("branch"),
+		Enforcement: github.RulesetEnforcementDisabled,
+		Target:      &branchTarget,
 	}
 
-	evaluateRuleset := &github.Ruleset{
+	evaluateRuleset := &github.RepositoryRuleset{
 		Name:        "evaluate-ruleset",
-		Enforcement: "evaluate",
-		Target:      github.String("branch"),
+		Enforcement: github.RulesetEnforcementEvaluate,
+		Target:      &branchTarget,
 	}
 
-	tagRuleset := &github.Ruleset{
+	tagRuleset := &github.RepositoryRuleset{
 		Name:        "tag-ruleset",
-		Enforcement: "active",
-		Target:      github.String("tag"),
+		Enforcement: github.RulesetEnforcementActive,
+		Target:      &tagTarget,
 	}
 
 	tests := []struct {
 		name     string
-		rulesets []*github.Ruleset
+		rulesets []*github.RepositoryRuleset
 		wantLen  int
 	}{
 		{
 			name:     "empty rulesets",
-			rulesets: []*github.Ruleset{},
+			rulesets: []*github.RepositoryRuleset{},
 			wantLen:  0,
 		},
 		{
 			name:     "only active branch rulesets pass",
-			rulesets: []*github.Ruleset{activeRuleset, disabledRuleset, evaluateRuleset, tagRuleset},
+			rulesets: []*github.RepositoryRuleset{activeRuleset, disabledRuleset, evaluateRuleset, tagRuleset},
 			wantLen:  1,
 		},
 		{
 			name:     "nil rulesets are skipped",
-			rulesets: []*github.Ruleset{nil, activeRuleset, nil},
+			rulesets: []*github.RepositoryRuleset{nil, activeRuleset, nil},
 			wantLen:  1,
 		},
 	}
@@ -176,29 +178,29 @@ func TestFilterApplicableOrgRulesets(t *testing.T) {
 func TestRulesetMatchesRef(t *testing.T) {
 	tests := []struct {
 		name      string
-		ruleset   *github.Ruleset
+		ruleset   *github.RepositoryRuleset
 		targetRef string
 		want      bool
 	}{
 		{
 			name:      "no conditions matches all",
-			ruleset:   &github.Ruleset{},
+			ruleset:   &github.RepositoryRuleset{},
 			targetRef: "refs/heads/main",
 			want:      true,
 		},
 		{
 			name: "nil ref conditions matches all",
-			ruleset: &github.Ruleset{
-				Conditions: &github.RulesetConditions{},
+			ruleset: &github.RepositoryRuleset{
+				Conditions: &github.RepositoryRulesetConditions{},
 			},
 			targetRef: "refs/heads/main",
 			want:      true,
 		},
 		{
 			name: "inclusion matches",
-			ruleset: &github.Ruleset{
-				Conditions: &github.RulesetConditions{
-					RefName: &github.RulesetRefConditionParameters{
+			ruleset: &github.RepositoryRuleset{
+				Conditions: &github.RepositoryRulesetConditions{
+					RefName: &github.RepositoryRulesetRefConditionParameters{
 						Include: []string{"refs/heads/main"},
 					},
 				},
@@ -208,9 +210,9 @@ func TestRulesetMatchesRef(t *testing.T) {
 		},
 		{
 			name: "inclusion does not match",
-			ruleset: &github.Ruleset{
-				Conditions: &github.RulesetConditions{
-					RefName: &github.RulesetRefConditionParameters{
+			ruleset: &github.RepositoryRuleset{
+				Conditions: &github.RepositoryRulesetConditions{
+					RefName: &github.RepositoryRulesetRefConditionParameters{
 						Include: []string{"refs/heads/develop"},
 					},
 				},
@@ -220,9 +222,9 @@ func TestRulesetMatchesRef(t *testing.T) {
 		},
 		{
 			name: "exclusion blocks match",
-			ruleset: &github.Ruleset{
-				Conditions: &github.RulesetConditions{
-					RefName: &github.RulesetRefConditionParameters{
+			ruleset: &github.RepositoryRuleset{
+				Conditions: &github.RepositoryRulesetConditions{
+					RefName: &github.RepositoryRulesetRefConditionParameters{
 						Include: []string{"refs/heads/*"},
 						Exclude: []string{"refs/heads/main"},
 					},
@@ -233,9 +235,9 @@ func TestRulesetMatchesRef(t *testing.T) {
 		},
 		{
 			name: "wildcard inclusion",
-			ruleset: &github.Ruleset{
-				Conditions: &github.RulesetConditions{
-					RefName: &github.RulesetRefConditionParameters{
+			ruleset: &github.RepositoryRuleset{
+				Conditions: &github.RepositoryRulesetConditions{
+					RefName: &github.RepositoryRulesetRefConditionParameters{
 						Include: []string{"refs/heads/*"},
 					},
 				},
@@ -257,11 +259,11 @@ func TestRulesetMatchesRef(t *testing.T) {
 
 func TestDeriveBaselineFromRulesets_NoConstraints(t *testing.T) {
 	// Ruleset with no merge-related rules.
-	rulesets := []*github.Ruleset{
+	rulesets := []*github.RepositoryRuleset{
 		{
 			Name:        "no-merge-rules",
-			Enforcement: "active",
-			Rules:       []*github.RepositoryRule{},
+			Enforcement: github.RulesetEnforcementActive,
+			Rules:       &github.RepositoryRulesetRules{},
 		},
 	}
 
@@ -276,12 +278,12 @@ func TestDeriveBaselineFromRulesets_NoConstraints(t *testing.T) {
 }
 
 func TestDeriveBaselineFromRulesets_LinearHistory(t *testing.T) {
-	rulesets := []*github.Ruleset{
+	rulesets := []*github.RepositoryRuleset{
 		{
 			Name:        "linear-history",
-			Enforcement: "active",
-			Rules: []*github.RepositoryRule{
-				{Type: "required_linear_history"},
+			Enforcement: github.RulesetEnforcementActive,
+			Rules: &github.RepositoryRulesetRules{
+				RequiredLinearHistory: &github.EmptyRuleParameters{},
 			},
 		},
 	}
@@ -296,6 +298,132 @@ func TestDeriveBaselineFromRulesets_LinearHistory(t *testing.T) {
 	}
 
 	// Linear history removes merge commits, leaving squash + rebase.
+	expectedMask := models.MergeMethodSquash | models.MergeMethodRebase
+	if baseline.Allowed != expectedMask {
+		t.Errorf("Allowed = %q, want %q", baseline.Allowed.String(), expectedMask.String())
+	}
+}
+
+func TestDeriveBaselineFromRulesets_PullRequestAllowedMergeMethods(t *testing.T) {
+	tests := []struct {
+		name           string
+		allowedMethods []github.PullRequestMergeMethod
+		wantState      models.BaselineState
+		wantMask       models.MergeMethodMask
+	}{
+		{
+			name:           "merge only",
+			allowedMethods: []github.PullRequestMergeMethod{github.PullRequestMergeMethodMerge},
+			wantState:      models.BaselineStateSet,
+			wantMask:       models.MergeMethodMerge,
+		},
+		{
+			name:           "squash only",
+			allowedMethods: []github.PullRequestMergeMethod{github.PullRequestMergeMethodSquash},
+			wantState:      models.BaselineStateSet,
+			wantMask:       models.MergeMethodSquash,
+		},
+		{
+			name:           "rebase only",
+			allowedMethods: []github.PullRequestMergeMethod{github.PullRequestMergeMethodRebase},
+			wantState:      models.BaselineStateSet,
+			wantMask:       models.MergeMethodRebase,
+		},
+		{
+			name:           "squash and rebase",
+			allowedMethods: []github.PullRequestMergeMethod{github.PullRequestMergeMethodSquash, github.PullRequestMergeMethodRebase},
+			wantState:      models.BaselineStateSet,
+			wantMask:       models.MergeMethodSquash | models.MergeMethodRebase,
+		},
+		{
+			name:           "empty methods (no constraint)",
+			allowedMethods: []github.PullRequestMergeMethod{},
+			wantState:      models.BaselineStateNone,
+			wantMask:       0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rulesets := []*github.RepositoryRuleset{
+				{
+					Name:        "pr-merge-methods",
+					Enforcement: github.RulesetEnforcementActive,
+					Rules: &github.RepositoryRulesetRules{
+						PullRequest: &github.PullRequestRuleParameters{
+							AllowedMergeMethods: tt.allowedMethods,
+						},
+					},
+				},
+			}
+
+			baseline, err := deriveBaselineFromRulesets(rulesets, "refs/heads/main")
+			if err != nil {
+				t.Fatalf("deriveBaselineFromRulesets() error = %v", err)
+			}
+
+			if baseline.State != tt.wantState {
+				t.Errorf("State = %q, want %q", baseline.State, tt.wantState)
+			}
+
+			if tt.wantState == models.BaselineStateSet && baseline.Allowed != tt.wantMask {
+				t.Errorf("Allowed = %q, want %q", baseline.Allowed.String(), tt.wantMask.String())
+			}
+		})
+	}
+}
+
+func TestDeriveBaselineFromRulesets_PullRequestWithLinearHistory(t *testing.T) {
+	// pull_request allows only merge, but linear_history removes merge.
+	// This should result in a conflict (empty mask).
+	rulesets := []*github.RepositoryRuleset{
+		{
+			Name:        "conflicting-rules",
+			Enforcement: github.RulesetEnforcementActive,
+			Rules: &github.RepositoryRulesetRules{
+				PullRequest: &github.PullRequestRuleParameters{
+					AllowedMergeMethods: []github.PullRequestMergeMethod{github.PullRequestMergeMethodMerge},
+				},
+				RequiredLinearHistory: &github.EmptyRuleParameters{},
+			},
+		},
+	}
+
+	baseline, err := deriveBaselineFromRulesets(rulesets, "refs/heads/main")
+	if err != nil {
+		t.Fatalf("deriveBaselineFromRulesets() error = %v", err)
+	}
+
+	if baseline.State != models.BaselineStateConflict {
+		t.Errorf("State = %q, want %q", baseline.State, models.BaselineStateConflict)
+	}
+}
+
+func TestDeriveBaselineFromRulesets_PullRequestCompatibleWithLinearHistory(t *testing.T) {
+	// pull_request allows squash+rebase, linear_history removes merge.
+	// These are compatible (squash+rebase remain).
+	rulesets := []*github.RepositoryRuleset{
+		{
+			Name:        "compatible-rules",
+			Enforcement: github.RulesetEnforcementActive,
+			Rules: &github.RepositoryRulesetRules{
+				PullRequest: &github.PullRequestRuleParameters{
+					AllowedMergeMethods: []github.PullRequestMergeMethod{github.PullRequestMergeMethodSquash, github.PullRequestMergeMethodRebase},
+				},
+				RequiredLinearHistory: &github.EmptyRuleParameters{},
+			},
+		},
+	}
+
+	baseline, err := deriveBaselineFromRulesets(rulesets, "refs/heads/main")
+	if err != nil {
+		t.Fatalf("deriveBaselineFromRulesets() error = %v", err)
+	}
+
+	if baseline.State != models.BaselineStateSet {
+		t.Errorf("State = %q, want %q", baseline.State, models.BaselineStateSet)
+	}
+
 	expectedMask := models.MergeMethodSquash | models.MergeMethodRebase
 	if baseline.Allowed != expectedMask {
 		t.Errorf("Allowed = %q, want %q", baseline.Allowed.String(), expectedMask.String())

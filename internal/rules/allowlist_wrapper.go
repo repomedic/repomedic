@@ -4,7 +4,7 @@ import (
 	"context"
 	"repomedic/internal/data"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 // AllowListWrapper wraps a Rule to provide automatic allowlist functionality.

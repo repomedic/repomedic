@@ -6,7 +6,7 @@ import (
 	"repomedic/internal/data"
 	"repomedic/internal/fetcher"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type defaultBranchRulesFetcher struct{}
@@ -40,19 +40,19 @@ func (d *defaultBranchRulesFetcher) Fetch(ctx context.Context, repo *github.Repo
 		return nil, err
 	}
 
-	rules, resp, err := f.Client().Client.Repositories.GetRulesForBranch(ctx, repo.GetOwner().GetLogin(), repo.GetName(), branch)
+	rules, resp, err := f.Client().Client.Repositories.GetRulesForBranch(ctx, repo.GetOwner().GetLogin(), repo.GetName(), branch, nil)
 	if resp != nil {
 		f.Budget().UpdateFromResponse(resp.Response)
 	}
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return []*github.RepositoryRule{}, nil
+			return &github.BranchRules{}, nil
 		}
 		return nil, err
 	}
 
 	if rules == nil {
-		return []*github.RepositoryRule{}, nil
+		return &github.BranchRules{}, nil
 	}
 
 	return rules, nil

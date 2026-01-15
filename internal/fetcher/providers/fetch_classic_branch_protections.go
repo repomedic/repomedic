@@ -8,7 +8,7 @@ import (
 	gh "repomedic/internal/github"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 const classicBranchProtectionsLimit = 100

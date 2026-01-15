@@ -7,7 +7,7 @@ import (
 	"repomedic/internal/data/models"
 	"repomedic/internal/fetcher"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 // mergeBaselineFetcher selects the final merge-method baseline from available sources.

@@ -2,14 +2,13 @@ package checks
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"repomedic/internal/data"
 	"repomedic/internal/rules"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type DefaultBranchPRReviewSettingsRule struct {
@@ -237,29 +236,23 @@ func effectivePRReviewSettingsOK(dc data.DataContext, cfg *DefaultBranchPRReview
 		return false, "no effective rules (nil)", ""
 	}
 
-	rules, okType := val.([]*github.RepositoryRule)
+	branchRules, okType := val.(*github.BranchRules)
 	if !okType {
 		return false, "unknown", "Invalid dependency type"
 	}
 
-	seenPullRequestRule := false
-	for _, rule := range rules {
-		if rule == nil {
+	// In v81, PullRequest is a slice of *PullRequestBranchRule
+	if len(branchRules.PullRequest) == 0 {
+		return false, "no pull_request rule found", ""
+	}
+
+	// Check first pull_request rule (typically there's only one)
+	for _, prRule := range branchRules.PullRequest {
+		if prRule == nil {
 			continue
 		}
-		if !strings.EqualFold(rule.Type, "pull_request") {
-			continue
-		}
-		seenPullRequestRule = true
 
-		if rule.Parameters == nil {
-			return false, "pull_request rule missing parameters", "pull_request rule missing parameters"
-		}
-
-		var params github.PullRequestRuleParameters
-		if err := json.Unmarshal(*rule.Parameters, &params); err != nil {
-			return false, "pull_request parameters unmarshal failed", fmt.Sprintf("pull_request parameters unmarshal failed: %v", err)
-		}
+		params := prRule.Parameters
 
 		parts := make([]string, 0, 4)
 		okAll := true
@@ -300,10 +293,6 @@ func effectivePRReviewSettingsOK(dc data.DataContext, cfg *DefaultBranchPRReview
 		if okAll {
 			return true, detail, ""
 		}
-	}
-
-	if !seenPullRequestRule {
-		return false, "no pull_request rule found", ""
 	}
 
 	if detail == "" {

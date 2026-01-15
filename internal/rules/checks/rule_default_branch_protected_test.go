@@ -6,14 +6,14 @@ import (
 	"repomedic/internal/rules"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestDefaultBranchProtectedRule_Evaluate(t *testing.T) {
 	rule := &DefaultBranchProtectedRule{}
 	repo := &github.Repository{
-		FullName:      github.String("org/repo"),
-		DefaultBranch: github.String("main"),
+		FullName:      github.Ptr("org/repo"),
+		DefaultBranch: github.Ptr("main"),
 	}
 
 	tests := []struct {
@@ -25,7 +25,7 @@ func TestDefaultBranchProtectedRule_Evaluate(t *testing.T) {
 			name: "Pass - Classic protection exists",
 			data: map[data.DependencyKey]any{
 				data.DepRepoDefaultBranchClassicProtection: &github.Protection{},
-				data.DepRepoDefaultBranchEffectiveRules:    []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules:    &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusPass,
 		},
@@ -33,8 +33,8 @@ func TestDefaultBranchProtectedRule_Evaluate(t *testing.T) {
 			name: "Pass - Ruleset protection exists",
 			data: map[data.DependencyKey]any{
 				data.DepRepoDefaultBranchClassicProtection: nil,
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{
-					{Type: "deletion"},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{
+					Deletion: []*github.BranchRuleMetadata{{}},
 				},
 			},
 			expectedStatus: rules.StatusPass,
@@ -43,7 +43,7 @@ func TestDefaultBranchProtectedRule_Evaluate(t *testing.T) {
 			name: "Fail - No protection",
 			data: map[data.DependencyKey]any{
 				data.DepRepoDefaultBranchClassicProtection: nil,
-				data.DepRepoDefaultBranchEffectiveRules:    []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules:    &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusFail,
 		},
@@ -51,7 +51,7 @@ func TestDefaultBranchProtectedRule_Evaluate(t *testing.T) {
 			name: "Error - Missing dependency",
 			data: map[data.DependencyKey]any{
 				// Missing DepRepoDefaultBranchClassicProtection
-				data.DepRepoDefaultBranchEffectiveRules: []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules: &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusError,
 		},

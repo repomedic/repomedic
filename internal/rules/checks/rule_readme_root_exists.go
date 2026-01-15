@@ -7,7 +7,7 @@ import (
 	"repomedic/internal/rules"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type ReadmeRootExistsRule struct{}

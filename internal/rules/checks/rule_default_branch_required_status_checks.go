@@ -2,14 +2,13 @@ package checks
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"repomedic/internal/data"
 	"repomedic/internal/rules"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type DefaultBranchRequiredStatusChecks struct {
@@ -88,47 +87,34 @@ func (r *DefaultBranchRequiredStatusChecks) Configure(opts map[string]string) er
 	return nil
 }
 
-type requiredStatusChecksParams struct {
-	RequiredStatusChecks []struct {
-		Context string `json:"context"`
-	} `json:"required_status_checks"`
-}
-
 func (r *DefaultBranchRequiredStatusChecks) Evaluate(ctx context.Context, repo *github.Repository, dc data.DataContext) (rules.Result, error) {
 	val, ok := dc.Get(data.DepRepoDefaultBranchEffectiveRules)
 	if !ok {
 		return rules.ErrorResult(repo, r.ID(), fmt.Sprintf("missing dependency: %s", data.DepRepoDefaultBranchEffectiveRules)), nil
 	}
 
-	effectiveRules, ok := val.([]*github.RepositoryRule)
+	branchRules, ok := val.(*github.BranchRules)
 	if !ok {
 		return rules.ErrorResult(repo, r.ID(), fmt.Sprintf("unexpected type for %s: %T", data.DepRepoDefaultBranchEffectiveRules, val)), nil
 	}
 
-	var statusCheckRule *github.RepositoryRule
-	for _, rule := range effectiveRules {
-		if rule.Type == "required_status_checks" {
-			statusCheckRule = rule
-			break
-		}
+	// In v81, RequiredStatusChecks is a slice of *RequiredStatusChecksBranchRule
+	if len(branchRules.RequiredStatusChecks) == 0 {
+		return rules.FailResult(repo, r.ID(), "Default branch does not require status checks"), nil
 	}
 
+	// Use the first status check rule (typically there's only one)
+	statusCheckRule := branchRules.RequiredStatusChecks[0]
 	if statusCheckRule == nil {
 		return rules.FailResult(repo, r.ID(), "Default branch does not require status checks"), nil
 	}
 
-	// Parse parameters
-	var params requiredStatusChecksParams
-	if statusCheckRule.Parameters != nil {
-		if err := json.Unmarshal(*statusCheckRule.Parameters, &params); err != nil {
-			// If we can't parse parameters, we treat it as an error because we can't verify the policy.
-			return rules.ErrorResult(repo, r.ID(), fmt.Sprintf("failed to parse rule parameters: %v", err)), nil
-		}
-	}
-
+	params := statusCheckRule.Parameters
 	knownChecks := make([]string, 0, len(params.RequiredStatusChecks))
 	for _, c := range params.RequiredStatusChecks {
-		knownChecks = append(knownChecks, c.Context)
+		if c != nil {
+			knownChecks = append(knownChecks, c.Context)
+		}
 	}
 
 	// Metadata
@@ -137,7 +123,7 @@ func (r *DefaultBranchRequiredStatusChecks) Evaluate(ctx context.Context, repo *
 		"enforced":              true,
 		"required_checks_count": len(knownChecks),
 		"required_checks":       knownChecks,
-		"source":                statusCheckRule.RulesetSource, // Might be empty or specific string
+		"source":                statusCheckRule.RulesetSource,
 		"policy": map[string]any{
 			"min_count": r.minCount,
 			"allow_any": r.allowAny,

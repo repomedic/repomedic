@@ -7,7 +7,7 @@ import (
 	"repomedic/internal/data"
 	"repomedic/internal/rules"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestSecretScanningDisabledRule_Evaluate(t *testing.T) {
@@ -19,14 +19,14 @@ func TestSecretScanningDisabledRule_Evaluate(t *testing.T) {
 		{
 			name: "missing security_and_analysis -> skipped",
 			repo: &github.Repository{
-				FullName: github.String("org/repo"),
+				FullName: github.Ptr("org/repo"),
 			},
 			expectedStatus: rules.StatusSkipped,
 		},
 		{
 			name: "missing secret_scanning -> skipped",
 			repo: &github.Repository{
-				FullName:            github.String("org/repo"),
+				FullName:            github.Ptr("org/repo"),
 				SecurityAndAnalysis: &github.SecurityAndAnalysis{},
 			},
 			expectedStatus: rules.StatusSkipped,
@@ -34,14 +34,14 @@ func TestSecretScanningDisabledRule_Evaluate(t *testing.T) {
 		{
 			name: "private repo, GHAS disabled -> skipped",
 			repo: &github.Repository{
-				FullName:   github.String("org/repo"),
-				Visibility: github.String("private"),
+				FullName:   github.Ptr("org/repo"),
+				Visibility: github.Ptr("private"),
 				SecurityAndAnalysis: &github.SecurityAndAnalysis{
 					AdvancedSecurity: &github.AdvancedSecurity{
-						Status: github.String("disabled"),
+						Status: github.Ptr("disabled"),
 					},
 					SecretScanning: &github.SecretScanning{
-						Status: github.String("disabled"),
+						Status: github.Ptr("disabled"),
 					},
 				},
 			},
@@ -50,14 +50,14 @@ func TestSecretScanningDisabledRule_Evaluate(t *testing.T) {
 		{
 			name: "internal repo, GHAS disabled -> skipped",
 			repo: &github.Repository{
-				FullName:   github.String("org/repo"),
-				Visibility: github.String("internal"),
+				FullName:   github.Ptr("org/repo"),
+				Visibility: github.Ptr("internal"),
 				SecurityAndAnalysis: &github.SecurityAndAnalysis{
 					AdvancedSecurity: &github.AdvancedSecurity{
-						Status: github.String("disabled"),
+						Status: github.Ptr("disabled"),
 					},
 					SecretScanning: &github.SecretScanning{
-						Status: github.String("disabled"),
+						Status: github.Ptr("disabled"),
 					},
 				},
 			},
@@ -66,14 +66,14 @@ func TestSecretScanningDisabledRule_Evaluate(t *testing.T) {
 		{
 			name: "private repo, GHAS enabled, secret scanning disabled -> fail",
 			repo: &github.Repository{
-				FullName:   github.String("org/repo"),
-				Visibility: github.String("private"),
+				FullName:   github.Ptr("org/repo"),
+				Visibility: github.Ptr("private"),
 				SecurityAndAnalysis: &github.SecurityAndAnalysis{
 					AdvancedSecurity: &github.AdvancedSecurity{
-						Status: github.String("enabled"),
+						Status: github.Ptr("enabled"),
 					},
 					SecretScanning: &github.SecretScanning{
-						Status: github.String("disabled"),
+						Status: github.Ptr("disabled"),
 					},
 				},
 			},
@@ -82,14 +82,14 @@ func TestSecretScanningDisabledRule_Evaluate(t *testing.T) {
 		{
 			name: "public repo, GHAS disabled, secret scanning disabled -> fail",
 			repo: &github.Repository{
-				FullName:   github.String("org/repo"),
-				Visibility: github.String("public"),
+				FullName:   github.Ptr("org/repo"),
+				Visibility: github.Ptr("public"),
 				SecurityAndAnalysis: &github.SecurityAndAnalysis{
 					AdvancedSecurity: &github.AdvancedSecurity{
-						Status: github.String("disabled"),
+						Status: github.Ptr("disabled"),
 					},
 					SecretScanning: &github.SecretScanning{
-						Status: github.String("disabled"),
+						Status: github.Ptr("disabled"),
 					},
 				},
 			},
@@ -98,10 +98,10 @@ func TestSecretScanningDisabledRule_Evaluate(t *testing.T) {
 		{
 			name: "enabled -> pass",
 			repo: &github.Repository{
-				FullName: github.String("org/repo"),
+				FullName: github.Ptr("org/repo"),
 				SecurityAndAnalysis: &github.SecurityAndAnalysis{
 					SecretScanning: &github.SecretScanning{
-						Status: github.String("enabled"),
+						Status: github.Ptr("enabled"),
 					},
 				},
 			},
@@ -110,10 +110,10 @@ func TestSecretScanningDisabledRule_Evaluate(t *testing.T) {
 		{
 			name: "disabled -> fail",
 			repo: &github.Repository{
-				FullName: github.String("org/repo"),
+				FullName: github.Ptr("org/repo"),
 				SecurityAndAnalysis: &github.SecurityAndAnalysis{
 					SecretScanning: &github.SecretScanning{
-						Status: github.String("disabled"),
+						Status: github.Ptr("disabled"),
 					},
 				},
 			},
@@ -122,10 +122,10 @@ func TestSecretScanningDisabledRule_Evaluate(t *testing.T) {
 		{
 			name: "unknown status -> skipped",
 			repo: &github.Repository{
-				FullName: github.String("org/repo"),
+				FullName: github.Ptr("org/repo"),
 				SecurityAndAnalysis: &github.SecurityAndAnalysis{
 					SecretScanning: &github.SecretScanning{
-						Status: github.String("unknown"),
+						Status: github.Ptr("unknown"),
 					},
 				},
 			},
