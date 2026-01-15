@@ -5,7 +5,7 @@ import (
 	"repomedic/internal/data"
 	"repomedic/internal/fetcher"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 // Keep GitHub calls bounded.
@@ -30,19 +30,21 @@ func (a *allRulesetsFetcher) Fetch(ctx context.Context, repo *github.Repository,
 	}
 
 	// includesParents=true to cover org-level rulesets applying to this repo.
-	rulesets, resp, err := f.Client().Client.Repositories.GetAllRulesets(ctx, owner, repoName, true)
+	includesParents := true
+	opts := &github.RepositoryListRulesetsOptions{IncludesParents: &includesParents}
+	rulesets, resp, err := f.Client().Client.Repositories.GetAllRulesets(ctx, owner, repoName, opts)
 	if resp != nil {
 		f.Budget().UpdateFromResponse(resp.Response)
 	}
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return []*github.Ruleset{}, nil
+			return []*github.RepositoryRuleset{}, nil
 		}
 		return nil, err
 	}
 
 	if rulesets == nil {
-		return []*github.Ruleset{}, nil
+		return []*github.RepositoryRuleset{}, nil
 	}
 
 	// Apply limit to keep bounded.

@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type testCycleFetcher struct {
@@ -115,8 +115,8 @@ func TestFetcher_Fetch(t *testing.T) {
 	f := fetcher.NewFetcher(client, budget)
 
 	repo := &github.Repository{
-		Owner: &github.User{Login: github.String("acme")},
-		Name:  github.String("repo"),
+		Owner: &github.User{Login: github.Ptr("acme")},
+		Name:  github.Ptr("repo"),
 	}
 
 	// Mock Metadata response
@@ -155,7 +155,7 @@ func TestFetcher_CacheKey_DeterministicParamsOrder(t *testing.T) {
 	budget := fetcher.NewRequestBudget()
 	f := fetcher.NewFetcher(client, budget)
 
-	repo := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo"), FullName: github.String("acme/repo")}
+	repo := &github.Repository{Owner: &github.User{Login: github.Ptr("acme")}, Name: github.Ptr("repo"), FullName: github.Ptr("acme/repo")}
 
 	paramsA := map[string]string{"b": "2", "a": "1"}
 	paramsB := map[string]string{"a": "1", "b": "2"}
@@ -193,7 +193,7 @@ func TestFetcher_DefaultBranchProtection_FallsBackToMetadataWhenBranchMissing(t 
 	budget := fetcher.NewRequestBudget()
 	f := fetcher.NewFetcher(client, budget)
 
-	repo := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo"), FullName: github.String("acme/repo")}
+	repo := &github.Repository{Owner: &github.User{Login: github.Ptr("acme")}, Name: github.Ptr("repo"), FullName: github.Ptr("acme/repo")}
 	val, err := f.Fetch(context.Background(), repo, data.DepRepoDefaultBranchClassicProtection, nil)
 	if err != nil {
 		t.Fatalf("Fetch default branch protection failed: %v", err)
@@ -230,7 +230,7 @@ func TestFetcher_DefaultBranchProtection_ErrorsWhenMetadataHasNoDefaultBranch(t 
 	budget := fetcher.NewRequestBudget()
 	f := fetcher.NewFetcher(client, budget)
 
-	repo := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo"), FullName: github.String("acme/repo")}
+	repo := &github.Repository{Owner: &github.User{Login: github.Ptr("acme")}, Name: github.Ptr("repo"), FullName: github.Ptr("acme/repo")}
 	_, err := f.Fetch(context.Background(), repo, data.DepRepoDefaultBranchClassicProtection, nil)
 	if err == nil {
 		t.Fatalf("expected error when default branch cannot be resolved")
@@ -264,7 +264,7 @@ func TestFetcher_DefaultBranchProtection_DoesNotDoubleFetchMetadata(t *testing.T
 	budget := fetcher.NewRequestBudget()
 	f := fetcher.NewFetcher(client, budget)
 
-	repo := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo"), FullName: github.String("acme/repo")}
+	repo := &github.Repository{Owner: &github.User{Login: github.Ptr("acme")}, Name: github.Ptr("repo"), FullName: github.Ptr("acme/repo")}
 
 	// Prime metadata cache.
 	if _, err := f.Fetch(context.Background(), repo, data.DepRepoMetadata, nil); err != nil {
@@ -291,7 +291,7 @@ func TestFetcher_DependencyCycleDetection_SelfCycle(t *testing.T) {
 	client := newTestClient(t, server.URL)
 	f := fetcher.NewFetcher(client, fetcher.NewRequestBudget())
 
-	repo := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo"), FullName: github.String("acme/repo")}
+	repo := &github.Repository{Owner: &github.User{Login: github.Ptr("acme")}, Name: github.Ptr("repo"), FullName: github.Ptr("acme/repo")}
 	_, err := f.Fetch(context.Background(), repo, selfKey, nil)
 	if err == nil {
 		t.Fatalf("expected cycle detection error")
@@ -309,7 +309,7 @@ func TestFetcher_DependencyCycleDetection_MutualCycle(t *testing.T) {
 	client := newTestClient(t, server.URL)
 	f := fetcher.NewFetcher(client, fetcher.NewRequestBudget())
 
-	repo := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo"), FullName: github.String("acme/repo")}
+	repo := &github.Repository{Owner: &github.User{Login: github.Ptr("acme")}, Name: github.Ptr("repo"), FullName: github.Ptr("acme/repo")}
 	_, err := f.Fetch(context.Background(), repo, aKey, nil)
 	if err == nil {
 		t.Fatalf("expected cycle detection error")
@@ -325,8 +325,8 @@ func TestFetcher_FetchScope_Org_DedupesAcrossReposSameOrg(t *testing.T) {
 	client := newTestClient(t, server.URL)
 	f := fetcher.NewFetcher(client, fetcher.NewRequestBudget())
 
-	repoA := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo-a"), FullName: github.String("acme/repo-a")}
-	repoB := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo-b"), FullName: github.String("acme/repo-b")}
+	repoA := &github.Repository{Owner: &github.User{Login: github.Ptr("acme")}, Name: github.Ptr("repo-a"), FullName: github.Ptr("acme/repo-a")}
+	repoB := &github.Repository{Owner: &github.User{Login: github.Ptr("acme")}, Name: github.Ptr("repo-b"), FullName: github.Ptr("acme/repo-b")}
 
 	start := make(chan struct{})
 	var wg sync.WaitGroup
@@ -362,8 +362,8 @@ func TestFetcher_FetchScope_Org_DoesNotDedupeAcrossDifferentOrgs(t *testing.T) {
 	client := newTestClient(t, server.URL)
 	f := fetcher.NewFetcher(client, fetcher.NewRequestBudget())
 
-	repoA := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo-a"), FullName: github.String("acme/repo-a")}
-	repoB := &github.Repository{Owner: &github.User{Login: github.String("other")}, Name: github.String("repo-b"), FullName: github.String("other/repo-b")}
+	repoA := &github.Repository{Owner: &github.User{Login: github.Ptr("acme")}, Name: github.Ptr("repo-a"), FullName: github.Ptr("acme/repo-a")}
+	repoB := &github.Repository{Owner: &github.User{Login: github.Ptr("other")}, Name: github.Ptr("repo-b"), FullName: github.Ptr("other/repo-b")}
 
 	if _, err := f.Fetch(context.Background(), repoA, testOrgScopeKey, nil); err != nil {
 		t.Fatalf("Fetch repoA failed: %v", err)
@@ -386,8 +386,8 @@ func TestFetcher_FetchScope_Repo_DoesNotDedupeAcrossRepos(t *testing.T) {
 	client := newTestClient(t, server.URL)
 	f := fetcher.NewFetcher(client, fetcher.NewRequestBudget())
 
-	repoA := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo-a"), FullName: github.String("acme/repo-a")}
-	repoB := &github.Repository{Owner: &github.User{Login: github.String("acme")}, Name: github.String("repo-b"), FullName: github.String("acme/repo-b")}
+	repoA := &github.Repository{Owner: &github.User{Login: github.Ptr("acme")}, Name: github.Ptr("repo-a"), FullName: github.Ptr("acme/repo-a")}
+	repoB := &github.Repository{Owner: &github.User{Login: github.Ptr("acme")}, Name: github.Ptr("repo-b"), FullName: github.Ptr("acme/repo-b")}
 
 	if _, err := f.Fetch(context.Background(), repoA, testRepoScopeKey, nil); err != nil {
 		t.Fatalf("Fetch repoA failed: %v", err)

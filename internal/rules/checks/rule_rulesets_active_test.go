@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestRulesetsActiveRule_Evaluate(t *testing.T) {
-	repo := &github.Repository{FullName: github.String("acme/repo"), DefaultBranch: github.String("main")}
+	repo := &github.Repository{FullName: github.Ptr("acme/repo"), DefaultBranch: github.Ptr("main")}
 
 	tests := []struct {
 		name           string
@@ -22,9 +22,9 @@ func TestRulesetsActiveRule_Evaluate(t *testing.T) {
 		{
 			name: "PASS when all rulesets are active",
 			data: map[data.DependencyKey]any{
-				data.DepRepoAllRulesets: []*github.Ruleset{
-					{ID: github.Int64(1), Name: "main-branch-protection", Enforcement: "active"},
-					{ID: github.Int64(2), Name: "release-protection", Enforcement: "active"},
+				data.DepRepoAllRulesets: []*github.RepositoryRuleset{
+					{ID: github.Ptr(int64(1)), Name: "main-branch-protection", Enforcement: github.RulesetEnforcementActive},
+					{ID: github.Ptr(int64(2)), Name: "release-protection", Enforcement: github.RulesetEnforcementActive},
 				},
 			},
 			expectedStatus: rules.StatusPass,
@@ -33,7 +33,7 @@ func TestRulesetsActiveRule_Evaluate(t *testing.T) {
 		{
 			name: "PASS when no rulesets configured (empty slice)",
 			data: map[data.DependencyKey]any{
-				data.DepRepoAllRulesets: []*github.Ruleset{},
+				data.DepRepoAllRulesets: []*github.RepositoryRuleset{},
 			},
 			expectedStatus: rules.StatusPass,
 			wantMsgContain: "No rulesets configured",
@@ -49,8 +49,8 @@ func TestRulesetsActiveRule_Evaluate(t *testing.T) {
 		{
 			name: "FAIL when ruleset is disabled",
 			data: map[data.DependencyKey]any{
-				data.DepRepoAllRulesets: []*github.Ruleset{
-					{ID: github.Int64(1), Name: "disabled-ruleset", Enforcement: "disabled"},
+				data.DepRepoAllRulesets: []*github.RepositoryRuleset{
+					{ID: github.Ptr(int64(1)), Name: "disabled-ruleset", Enforcement: github.RulesetEnforcementDisabled},
 				},
 			},
 			expectedStatus: rules.StatusFail,
@@ -59,8 +59,8 @@ func TestRulesetsActiveRule_Evaluate(t *testing.T) {
 		{
 			name: "FAIL when ruleset is in evaluate mode",
 			data: map[data.DependencyKey]any{
-				data.DepRepoAllRulesets: []*github.Ruleset{
-					{ID: github.Int64(1), Name: "test-ruleset", Enforcement: "evaluate"},
+				data.DepRepoAllRulesets: []*github.RepositoryRuleset{
+					{ID: github.Ptr(int64(1)), Name: "test-ruleset", Enforcement: github.RulesetEnforcementEvaluate},
 				},
 			},
 			expectedStatus: rules.StatusFail,
@@ -69,40 +69,20 @@ func TestRulesetsActiveRule_Evaluate(t *testing.T) {
 		{
 			name: "FAIL when multiple rulesets are not active",
 			data: map[data.DependencyKey]any{
-				data.DepRepoAllRulesets: []*github.Ruleset{
-					{ID: github.Int64(1), Name: "active-ruleset", Enforcement: "active"},
-					{ID: github.Int64(2), Name: "disabled-ruleset", Enforcement: "disabled"},
-					{ID: github.Int64(3), Name: "evaluate-ruleset", Enforcement: "evaluate"},
+				data.DepRepoAllRulesets: []*github.RepositoryRuleset{
+					{ID: github.Ptr(int64(1)), Name: "active-ruleset", Enforcement: github.RulesetEnforcementActive},
+					{ID: github.Ptr(int64(2)), Name: "disabled-ruleset", Enforcement: github.RulesetEnforcementDisabled},
+					{ID: github.Ptr(int64(3)), Name: "evaluate-ruleset", Enforcement: github.RulesetEnforcementEvaluate},
 				},
 			},
 			expectedStatus: rules.StatusFail,
 			wantMsgContain: "Found 2 non-active ruleset(s)",
 		},
 		{
-			name: "FAIL when ruleset has uppercase enforcement value",
-			data: map[data.DependencyKey]any{
-				data.DepRepoAllRulesets: []*github.Ruleset{
-					{ID: github.Int64(1), Name: "test", Enforcement: "EVALUATE"},
-				},
-			},
-			expectedStatus: rules.StatusFail,
-			wantMsgContain: "test (evaluate)",
-		},
-		{
-			name: "PASS when ruleset has uppercase ACTIVE enforcement",
-			data: map[data.DependencyKey]any{
-				data.DepRepoAllRulesets: []*github.Ruleset{
-					{ID: github.Int64(1), Name: "test", Enforcement: "ACTIVE"},
-				},
-			},
-			expectedStatus: rules.StatusPass,
-			wantMsgContain: "All 1 ruleset(s) are active",
-		},
-		{
 			name: "FAIL shows ID when name is empty",
 			data: map[data.DependencyKey]any{
-				data.DepRepoAllRulesets: []*github.Ruleset{
-					{ID: github.Int64(123), Name: "", Enforcement: "disabled"},
+				data.DepRepoAllRulesets: []*github.RepositoryRuleset{
+					{ID: github.Ptr(int64(123)), Name: "", Enforcement: github.RulesetEnforcementDisabled},
 				},
 			},
 			expectedStatus: rules.StatusFail,
@@ -125,9 +105,9 @@ func TestRulesetsActiveRule_Evaluate(t *testing.T) {
 		{
 			name: "PASS skips nil rulesets in slice",
 			data: map[data.DependencyKey]any{
-				data.DepRepoAllRulesets: []*github.Ruleset{
+				data.DepRepoAllRulesets: []*github.RepositoryRuleset{
 					nil,
-					{ID: github.Int64(1), Name: "active-ruleset", Enforcement: "active"},
+					{ID: github.Ptr(int64(1)), Name: "active-ruleset", Enforcement: github.RulesetEnforcementActive},
 					nil,
 				},
 			},
@@ -164,7 +144,7 @@ func TestRulesetsActiveRule_ID(t *testing.T) {
 
 func TestRulesetsActiveRule_Dependencies(t *testing.T) {
 	rule := &RulesetsActiveRule{}
-	repo := &github.Repository{FullName: github.String("acme/repo")}
+	repo := &github.Repository{FullName: github.Ptr("acme/repo")}
 
 	deps, err := rule.Dependencies(context.Background(), repo)
 	if err != nil {

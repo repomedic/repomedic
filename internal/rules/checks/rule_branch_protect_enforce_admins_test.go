@@ -7,11 +7,11 @@ import (
 	"repomedic/internal/rules"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestBranchProtectEnforceAdmins_Evaluate(t *testing.T) {
-	repo := &github.Repository{FullName: github.String("org/repo")}
+	repo := &github.Repository{FullName: github.Ptr("org/repo")}
 
 	tests := []struct {
 		name           string

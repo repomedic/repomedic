@@ -2,14 +2,13 @@ package providers
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"repomedic/internal/data"
 	"repomedic/internal/data/models"
 	"repomedic/internal/fetcher"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 // repoEffectiveMergeMethodsFetcher computes the effective allowed merge methods
@@ -62,7 +61,7 @@ func (r *repoEffectiveMergeMethodsFetcher) Fetch(ctx context.Context, repo *gith
 		return allowed, nil
 	}
 
-	rulesets, ok := rulesetsResult.([]*github.Ruleset)
+	rulesets, ok := rulesetsResult.([]*github.RepositoryRuleset)
 	if !ok {
 		// Invalid type - return repo settings only.
 		return allowed, nil
@@ -87,19 +86,20 @@ func (r *repoEffectiveMergeMethodsFetcher) Fetch(ctx context.Context, repo *gith
 
 // applyRulesetConstraints applies merge method constraints from rulesets that
 // target the given ref and are actively enforced.
-func applyRulesetConstraints(rulesets []*github.Ruleset, targetRef string, allowed models.MergeMethodMask) models.MergeMethodMask {
+func applyRulesetConstraints(rulesets []*github.RepositoryRuleset, targetRef string, allowed models.MergeMethodMask) models.MergeMethodMask {
 	for _, rs := range rulesets {
 		if rs == nil {
 			continue
 		}
 
 		// Only actively enforced rulesets.
-		if strings.ToLower(rs.Enforcement) != "active" {
+		if rs.Enforcement != github.RulesetEnforcementActive {
 			continue
 		}
 
 		// Only branch-targeting rulesets.
-		if rs.GetTarget() != "" && rs.GetTarget() != "branch" {
+		target := rs.GetTarget()
+		if target != nil && *target != github.RulesetTargetBranch {
 			continue
 		}
 
@@ -109,7 +109,7 @@ func applyRulesetConstraints(rulesets []*github.Ruleset, targetRef string, allow
 		}
 
 		// Apply rule constraints.
-		allowed = applyRulesConstraints(rs.Rules, allowed)
+		allowed = applyRulesConstraints(rs.GetRules(), allowed)
 
 		// Early exit if no methods left.
 		if allowed == 0 {
@@ -120,48 +120,52 @@ func applyRulesetConstraints(rulesets []*github.Ruleset, targetRef string, allow
 	return allowed
 }
 
-// applyRulesConstraints applies constraints from individual rules within a ruleset.
-func applyRulesConstraints(rules []*github.RepositoryRule, allowed models.MergeMethodMask) models.MergeMethodMask {
-	for _, rule := range rules {
-		if rule == nil {
-			continue
-		}
+// applyRulesConstraints applies constraints from structured rules within a ruleset.
+func applyRulesConstraints(rules *github.RepositoryRulesetRules, allowed models.MergeMethodMask) models.MergeMethodMask {
+	if rules == nil {
+		return allowed
+	}
 
-		switch rule.Type {
-		case "required_linear_history":
-			// Linear history prohibits merge commits.
-			allowed = allowed &^ models.MergeMethodMerge
+	// Check required_linear_history rule.
+	if rules.RequiredLinearHistory != nil {
+		allowed = allowed &^ models.MergeMethodMerge
+	}
 
-		case "merge_queue":
-			// Merge queue may specify a single method.
-			params := rule.GetParameters()
-			if params == nil {
-				continue
-			}
-
-			var mqParams github.MergeQueueRuleParameters
-			if err := json.Unmarshal(params, &mqParams); err != nil {
-				continue
-			}
-
-			method := strings.ToUpper(mqParams.MergeMethod)
-			if method == "" {
-				continue
-			}
-
+	// Check merge_queue rule.
+	if rules.MergeQueue != nil {
+		method := string(rules.MergeQueue.MergeMethod)
+		if method != "" {
 			var methodMask models.MergeMethodMask
-			switch method {
+			switch strings.ToUpper(method) {
 			case "MERGE":
 				methodMask = models.MergeMethodMerge
 			case "SQUASH":
 				methodMask = models.MergeMethodSquash
 			case "REBASE":
 				methodMask = models.MergeMethodRebase
-			default:
-				continue
 			}
 
-			// Merge queue constrains to a single method.
+			if methodMask != 0 {
+				allowed = allowed.Intersect(methodMask)
+			}
+		}
+	}
+
+	// Check pull_request rule for allowed merge methods.
+	if rules.PullRequest != nil && len(rules.PullRequest.AllowedMergeMethods) > 0 {
+		var methodMask models.MergeMethodMask
+		for _, method := range rules.PullRequest.AllowedMergeMethods {
+			switch method {
+			case github.PullRequestMergeMethodMerge:
+				methodMask |= models.MergeMethodMerge
+			case github.PullRequestMergeMethodSquash:
+				methodMask |= models.MergeMethodSquash
+			case github.PullRequestMergeMethodRebase:
+				methodMask |= models.MergeMethodRebase
+			}
+		}
+
+		if methodMask != 0 {
 			allowed = allowed.Intersect(methodMask)
 		}
 	}

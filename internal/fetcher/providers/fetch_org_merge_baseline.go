@@ -2,7 +2,6 @@ package providers
 
 import (
 	"context"
-	"encoding/json"
 	"sort"
 	"strings"
 
@@ -10,7 +9,7 @@ import (
 	"repomedic/internal/data/models"
 	"repomedic/internal/fetcher"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 // Keep GitHub calls bounded.
@@ -74,7 +73,7 @@ func (o *orgMergeBaselineFetcher) Fetch(ctx context.Context, repo *github.Reposi
 		return nil, err
 	}
 
-	rulesets, resp, err := f.Client().Client.Organizations.GetAllOrganizationRulesets(ctx, owner)
+	rulesets, resp, err := f.Client().Client.Organizations.GetAllRepositoryRulesets(ctx, owner, nil)
 	if resp != nil {
 		f.Budget().UpdateFromResponse(resp.Response)
 	}
@@ -160,8 +159,8 @@ func determineTargetRef(repos []*github.Repository) string {
 
 // filterApplicableOrgRulesets returns rulesets that are actively enforced
 // and target branches matching the given ref.
-func filterApplicableOrgRulesets(rulesets []*github.Ruleset, targetRef string) []*github.Ruleset {
-	var result []*github.Ruleset
+func filterApplicableOrgRulesets(rulesets []*github.RepositoryRuleset, targetRef string) []*github.RepositoryRuleset {
+	var result []*github.RepositoryRuleset
 
 	for _, rs := range rulesets {
 		if rs == nil {
@@ -169,12 +168,13 @@ func filterApplicableOrgRulesets(rulesets []*github.Ruleset, targetRef string) [
 		}
 
 		// Only actively enforced rulesets.
-		if strings.ToLower(rs.Enforcement) != "active" {
+		if rs.Enforcement != github.RulesetEnforcementActive {
 			continue
 		}
 
 		// Only branch-targeting rulesets.
-		if rs.GetTarget() != "" && rs.GetTarget() != "branch" {
+		target := rs.GetTarget()
+		if target != nil && *target != github.RulesetTargetBranch {
 			continue
 		}
 
@@ -190,14 +190,14 @@ func filterApplicableOrgRulesets(rulesets []*github.Ruleset, targetRef string) [
 }
 
 // rulesetMatchesRef checks if a ruleset's ref conditions match the target ref.
-func rulesetMatchesRef(rs *github.Ruleset, targetRef string) bool {
+func rulesetMatchesRef(rs *github.RepositoryRuleset, targetRef string) bool {
 	cond := rs.GetConditions()
 	if cond == nil {
 		// No conditions means applies to all branches.
 		return true
 	}
 
-	refCond := cond.GetRefName()
+	refCond := cond.RefName
 	if refCond == nil {
 		// No ref conditions means applies to all branches.
 		return true
@@ -256,7 +256,7 @@ func refMatchesPattern(ref, pattern string) bool {
 }
 
 // deriveBaselineFromRulesets computes the allowed merge methods from applicable rulesets.
-func deriveBaselineFromRulesets(rulesets []*github.Ruleset, targetRef string) (*models.MergeBaseline, error) {
+func deriveBaselineFromRulesets(rulesets []*github.RepositoryRuleset, targetRef string) (*models.MergeBaseline, error) {
 	// Start with all methods allowed.
 	allowed := models.MergeMethodMerge | models.MergeMethodSquash | models.MergeMethodRebase
 
@@ -264,56 +264,63 @@ func deriveBaselineFromRulesets(rulesets []*github.Ruleset, targetRef string) (*
 	hasConstraints := false
 
 	for _, rs := range rulesets {
-		if rs == nil || rs.Rules == nil {
+		if rs == nil {
 			continue
 		}
 
-		for _, rule := range rs.Rules {
-			if rule == nil {
-				continue
+		rules := rs.GetRules()
+		if rules == nil {
+			continue
+		}
+
+		// Check required_linear_history rule.
+		if rules.RequiredLinearHistory != nil {
+			if allowed.Has(models.MergeMethodMerge) {
+				allowed = allowed &^ models.MergeMethodMerge
+				evidence = append(evidence, rs.Name+": required_linear_history (removes merge)")
+				hasConstraints = true
 			}
+		}
 
-			switch rule.Type {
-			case "required_linear_history":
-				// Linear history prohibits merge commits.
-				if allowed.Has(models.MergeMethodMerge) {
-					allowed = allowed &^ models.MergeMethodMerge
-					evidence = append(evidence, rs.Name+": required_linear_history (removes merge)")
-					hasConstraints = true
-				}
-
-			case "merge_queue":
-				// Merge queue can specify a single merge method.
-				params := rule.GetParameters()
-				if params == nil {
-					continue
-				}
-
-				var mqParams github.MergeQueueRuleParameters
-				if err := json.Unmarshal(params, &mqParams); err != nil {
-					continue
-				}
-
-				method := strings.ToUpper(mqParams.MergeMethod)
-				if method == "" {
-					continue
-				}
-
+		// Check merge_queue rule.
+		if rules.MergeQueue != nil {
+			method := string(rules.MergeQueue.MergeMethod)
+			if method != "" {
 				var methodMask models.MergeMethodMask
-				switch method {
+				switch strings.ToUpper(method) {
 				case "MERGE":
 					methodMask = models.MergeMethodMerge
 				case "SQUASH":
 					methodMask = models.MergeMethodSquash
 				case "REBASE":
 					methodMask = models.MergeMethodRebase
-				default:
-					continue
 				}
 
-				// Merge queue constrains to a single method.
+				if methodMask != 0 {
+					allowed = allowed.Intersect(methodMask)
+					evidence = append(evidence, rs.Name+": merge_queue ("+strings.ToLower(method)+" only)")
+					hasConstraints = true
+				}
+			}
+		}
+
+		// Check pull_request rule for allowed merge methods.
+		if rules.PullRequest != nil && len(rules.PullRequest.AllowedMergeMethods) > 0 {
+			var methodMask models.MergeMethodMask
+			for _, method := range rules.PullRequest.AllowedMergeMethods {
+				switch method {
+				case github.PullRequestMergeMethodMerge:
+					methodMask |= models.MergeMethodMerge
+				case github.PullRequestMergeMethodSquash:
+					methodMask |= models.MergeMethodSquash
+				case github.PullRequestMergeMethodRebase:
+					methodMask |= models.MergeMethodRebase
+				}
+			}
+
+			if methodMask != 0 {
 				allowed = allowed.Intersect(methodMask)
-				evidence = append(evidence, rs.Name+": merge_queue ("+strings.ToLower(method)+" only)")
+				evidence = append(evidence, rs.Name+": pull_request ("+methodMask.String()+" only)")
 				hasConstraints = true
 			}
 		}

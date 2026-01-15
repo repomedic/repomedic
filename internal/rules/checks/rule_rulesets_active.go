@@ -7,7 +7,7 @@ import (
 	"repomedic/internal/rules"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 // RulesetsActiveRule checks that all rulesets (including inherited org rulesets)
@@ -45,7 +45,7 @@ func (r *RulesetsActiveRule) Evaluate(ctx context.Context, repo *github.Reposito
 		return rules.PassResultWithMessage(repo, r.ID(), "No rulesets configured"), nil
 	}
 
-	rulesets, ok := val.([]*github.Ruleset)
+	rulesets, ok := val.([]*github.RepositoryRuleset)
 	if !ok {
 		return rules.ErrorResult(repo, r.ID(), "Invalid dependency type"), nil
 	}
@@ -63,7 +63,8 @@ func (r *RulesetsActiveRule) Evaluate(ctx context.Context, repo *github.Reposito
 			continue
 		}
 
-		enforcement := strings.ToLower(strings.TrimSpace(rs.Enforcement))
+		// In v81, Enforcement is a typed enum (RulesetEnforcement), convert to string
+		enforcement := strings.ToLower(strings.TrimSpace(string(rs.Enforcement)))
 		if enforcement != "active" {
 			// Include the ruleset name and enforcement status in the message
 			name := rs.Name

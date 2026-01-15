@@ -5,7 +5,7 @@ import (
 	"repomedic/internal/data"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type dummyRule struct {

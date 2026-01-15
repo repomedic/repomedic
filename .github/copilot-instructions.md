@@ -83,7 +83,7 @@ Minimal skeleton:
 ```go
 func TestMyNewRule_Evaluate(t *testing.T) {
     rule := &MyNewRule{}
-    repo := &github.Repository{FullName: github.String("org/repo")}
+    repo := &github.Repository{FullName: github.Ptr("org/repo")}
 
     tests := []struct {
         name           string

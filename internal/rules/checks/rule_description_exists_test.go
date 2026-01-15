@@ -6,12 +6,12 @@ import (
 	"repomedic/internal/rules"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestDescriptionExistsRule_Evaluate(t *testing.T) {
 	rule := &DescriptionExistsRule{}
-	repo := &github.Repository{FullName: github.String("acme/repo")}
+	repo := &github.Repository{FullName: github.Ptr("acme/repo")}
 
 	tests := []struct {
 		name           string
@@ -21,14 +21,14 @@ func TestDescriptionExistsRule_Evaluate(t *testing.T) {
 		{
 			name: "Pass - Description Present",
 			data: map[data.DependencyKey]any{
-				data.DepRepoMetadata: &github.Repository{Description: github.String("desc")},
+				data.DepRepoMetadata: &github.Repository{Description: github.Ptr("desc")},
 			},
 			expectedStatus: rules.StatusPass,
 		},
 		{
 			name: "Fail - Description Empty",
 			data: map[data.DependencyKey]any{
-				data.DepRepoMetadata: &github.Repository{Description: github.String("")},
+				data.DepRepoMetadata: &github.Repository{Description: github.Ptr("")},
 			},
 			expectedStatus: rules.StatusFail,
 		},

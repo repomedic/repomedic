@@ -5,16 +5,16 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestFilterRepos(t *testing.T) {
 	repos := []RepositoryRef{
-		{Repo: &github.Repository{Name: github.String("repo1"), FullName: github.String("acme/repo1"), Private: github.Bool(false), Archived: github.Bool(false), Fork: github.Bool(false), Topics: []string{"go"}}},
-		{Repo: &github.Repository{Name: github.String("repo2"), FullName: github.String("acme/repo2"), Private: github.Bool(true), Archived: github.Bool(false), Fork: github.Bool(false), Topics: []string{"js"}}},
-		{Repo: &github.Repository{Name: github.String("repo3"), FullName: github.String("acme/repo3"), Private: github.Bool(false), Archived: github.Bool(true), Fork: github.Bool(false)}},
-		{Repo: &github.Repository{Name: github.String("repo4"), FullName: github.String("acme/repo4"), Private: github.Bool(false), Archived: github.Bool(false), Fork: github.Bool(true)}},
-		{Repo: &github.Repository{Name: github.String("repo5"), FullName: github.String("acme/repo5"), Private: github.Bool(true), Visibility: github.String("internal"), Archived: github.Bool(false), Fork: github.Bool(false)}},
+		{Repo: &github.Repository{Name: github.Ptr("repo1"), FullName: github.Ptr("acme/repo1"), Private: github.Ptr(false), Archived: github.Ptr(false), Fork: github.Ptr(false), Topics: []string{"go"}}},
+		{Repo: &github.Repository{Name: github.Ptr("repo2"), FullName: github.Ptr("acme/repo2"), Private: github.Ptr(true), Archived: github.Ptr(false), Fork: github.Ptr(false), Topics: []string{"js"}}},
+		{Repo: &github.Repository{Name: github.Ptr("repo3"), FullName: github.Ptr("acme/repo3"), Private: github.Ptr(false), Archived: github.Ptr(true), Fork: github.Ptr(false)}},
+		{Repo: &github.Repository{Name: github.Ptr("repo4"), FullName: github.Ptr("acme/repo4"), Private: github.Ptr(false), Archived: github.Ptr(false), Fork: github.Ptr(true)}},
+		{Repo: &github.Repository{Name: github.Ptr("repo5"), FullName: github.Ptr("acme/repo5"), Private: github.Ptr(true), Visibility: github.Ptr("internal"), Archived: github.Ptr(false), Fork: github.Ptr(false)}},
 	}
 
 	tests := []struct {

@@ -7,7 +7,7 @@ import (
 	"repomedic/internal/data"
 	"repomedic/internal/rules"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestRepoVisibilityPublicRule_Evaluate(t *testing.T) {
@@ -19,16 +19,16 @@ func TestRepoVisibilityPublicRule_Evaluate(t *testing.T) {
 		{
 			name: "private repo passes",
 			repo: &github.Repository{
-				FullName: github.String("org/private-repo"),
-				Private:  github.Bool(true),
+				FullName: github.Ptr("org/private-repo"),
+				Private:  github.Ptr(true),
 			},
 			expectedStatus: rules.StatusPass,
 		},
 		{
 			name: "public repo fails without allow-list",
 			repo: &github.Repository{
-				FullName:   github.String("org/public-repo"),
-				Visibility: github.String("public"),
+				FullName:   github.Ptr("org/public-repo"),
+				Visibility: github.Ptr("public"),
 			},
 			expectedStatus: rules.StatusFail,
 		},

@@ -7,12 +7,12 @@ import (
 	"repomedic/internal/rules"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestReadmeRootExistsRule_Evaluate(t *testing.T) {
 	rule := &ReadmeRootExistsRule{}
-	repo := &github.Repository{FullName: github.String("acme/repo"), DefaultBranch: github.String("main")}
+	repo := &github.Repository{FullName: github.Ptr("acme/repo"), DefaultBranch: github.Ptr("main")}
 
 	tests := []struct {
 		name           string

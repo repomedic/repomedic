@@ -6,7 +6,7 @@ import (
 	"repomedic/internal/data/models"
 	"repomedic/internal/rules"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 // BranchProtectionExistsRule detects repositories that have no branch protection

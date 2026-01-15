@@ -12,7 +12,7 @@ import (
 	gh "repomedic/internal/github"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestFetcher_RealFetch(t *testing.T) {
@@ -34,10 +34,10 @@ func TestFetcher_RealFetch(t *testing.T) {
 	f := fetcher.NewFetcher(client, budget)
 
 	repo := &github.Repository{
-		Owner:         &github.User{Login: github.String("acme")},
-		Name:          github.String("repo"),
-		FullName:      github.String("acme/repo"),
-		DefaultBranch: github.String("main"),
+		Owner:         &github.User{Login: github.Ptr("acme")},
+		Name:          github.Ptr("repo"),
+		FullName:      github.Ptr("acme/repo"),
+		DefaultBranch: github.Ptr("main"),
 	}
 
 	// 1. Test Repo Metadata
@@ -72,10 +72,10 @@ func TestFetcher_RealFetch(t *testing.T) {
 	// We need a different repo or reset mux? Or just use a different key/repo for this test case.
 	// Let's use a different repo struct.
 	repoUnprotected := &github.Repository{
-		Owner:         &github.User{Login: github.String("acme")},
-		Name:          github.String("unprotected"),
-		FullName:      github.String("acme/unprotected"),
-		DefaultBranch: github.String("main"),
+		Owner:         &github.User{Login: github.Ptr("acme")},
+		Name:          github.Ptr("unprotected"),
+		FullName:      github.Ptr("acme/unprotected"),
+		DefaultBranch: github.Ptr("main"),
 	}
 	mux.HandleFunc("/repos/acme/unprotected/branches/main/protection", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
@@ -143,9 +143,9 @@ func TestFetcher_Cache(t *testing.T) {
 	f := fetcher.NewFetcher(client, budget)
 
 	repo := &github.Repository{
-		Owner:    &github.User{Login: github.String("acme")},
-		Name:     github.String("cache-repo"),
-		FullName: github.String("acme/cache-repo"),
+		Owner:    &github.User{Login: github.Ptr("acme")},
+		Name:     github.Ptr("cache-repo"),
+		FullName: github.Ptr("acme/cache-repo"),
 	}
 
 	// First call

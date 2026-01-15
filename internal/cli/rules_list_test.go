@@ -9,7 +9,7 @@ import (
 	"repomedic/internal/data"
 	"repomedic/internal/rules"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 // mockRule implements rules.Rule for testing purposes

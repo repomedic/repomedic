@@ -6,16 +6,16 @@ import (
 	"repomedic/internal/rules"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestDefaultBranchNoForcePushRule_Evaluate(t *testing.T) {
 	rule := &DefaultBranchNoForcePushRule{}
 	repo := &github.Repository{
-		Owner:         &github.User{Login: github.String("test-org")},
-		Name:          github.String("test-repo"),
-		FullName:      github.String("test-org/test-repo"),
-		DefaultBranch: github.String("main"),
+		Owner:         &github.User{Login: github.Ptr("test-org")},
+		Name:          github.Ptr("test-repo"),
+		FullName:      github.Ptr("test-org/test-repo"),
+		DefaultBranch: github.Ptr("main"),
 	}
 
 	tests := []struct {
@@ -28,7 +28,7 @@ func TestDefaultBranchNoForcePushRule_Evaluate(t *testing.T) {
 			data: map[data.DependencyKey]any{
 				data.DepRepoMetadata:                       repo,
 				data.DepRepoDefaultBranchClassicProtection: &github.Protection{},
-				data.DepRepoDefaultBranchEffectiveRules:    []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules:    &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusPass,
 		},
@@ -37,7 +37,7 @@ func TestDefaultBranchNoForcePushRule_Evaluate(t *testing.T) {
 			data: map[data.DependencyKey]any{
 				data.DepRepoMetadata:                       repo,
 				data.DepRepoDefaultBranchClassicProtection: &github.Protection{AllowForcePushes: &github.AllowForcePushes{Enabled: false}},
-				data.DepRepoDefaultBranchEffectiveRules:    []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules:    &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusPass,
 		},
@@ -46,7 +46,7 @@ func TestDefaultBranchNoForcePushRule_Evaluate(t *testing.T) {
 			data: map[data.DependencyKey]any{
 				data.DepRepoMetadata:                       repo,
 				data.DepRepoDefaultBranchClassicProtection: nil,
-				data.DepRepoDefaultBranchEffectiveRules:    []*github.RepositoryRule{{Type: "non_fast_forward"}},
+				data.DepRepoDefaultBranchEffectiveRules:    &github.BranchRules{NonFastForward: []*github.BranchRuleMetadata{{}}},
 			},
 			expectedStatus: rules.StatusPass,
 		},
@@ -55,7 +55,7 @@ func TestDefaultBranchNoForcePushRule_Evaluate(t *testing.T) {
 			data: map[data.DependencyKey]any{
 				data.DepRepoMetadata:                       repo,
 				data.DepRepoDefaultBranchClassicProtection: &github.Protection{},
-				data.DepRepoDefaultBranchEffectiveRules:    []*github.RepositoryRule{{Type: "non_fast_forward"}},
+				data.DepRepoDefaultBranchEffectiveRules:    &github.BranchRules{NonFastForward: []*github.BranchRuleMetadata{{}}},
 			},
 			expectedStatus: rules.StatusPass,
 		},
@@ -64,7 +64,7 @@ func TestDefaultBranchNoForcePushRule_Evaluate(t *testing.T) {
 			data: map[data.DependencyKey]any{
 				data.DepRepoMetadata:                       repo,
 				data.DepRepoDefaultBranchClassicProtection: &github.Protection{AllowForcePushes: &github.AllowForcePushes{Enabled: true}},
-				data.DepRepoDefaultBranchEffectiveRules:    []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules:    &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusFail,
 		},
@@ -73,7 +73,7 @@ func TestDefaultBranchNoForcePushRule_Evaluate(t *testing.T) {
 			data: map[data.DependencyKey]any{
 				data.DepRepoMetadata:                       repo,
 				data.DepRepoDefaultBranchClassicProtection: nil,
-				data.DepRepoDefaultBranchEffectiveRules:    []*github.RepositoryRule{},
+				data.DepRepoDefaultBranchEffectiveRules:    &github.BranchRules{},
 			},
 			expectedStatus: rules.StatusFail,
 		},
@@ -82,7 +82,7 @@ func TestDefaultBranchNoForcePushRule_Evaluate(t *testing.T) {
 			data: map[data.DependencyKey]any{
 				data.DepRepoMetadata:                       repo,
 				data.DepRepoDefaultBranchClassicProtection: nil,
-				data.DepRepoDefaultBranchEffectiveRules:    []*github.RepositoryRule{{Type: "pull_request"}, {Type: "required_status_checks"}},
+				data.DepRepoDefaultBranchEffectiveRules:    &github.BranchRules{PullRequest: []*github.PullRequestBranchRule{{}}, RequiredStatusChecks: []*github.RequiredStatusChecksBranchRule{{}}},
 			},
 			expectedStatus: rules.StatusFail,
 		},
@@ -91,7 +91,7 @@ func TestDefaultBranchNoForcePushRule_Evaluate(t *testing.T) {
 			data: map[data.DependencyKey]any{
 				data.DepRepoMetadata:                       repo,
 				data.DepRepoDefaultBranchClassicProtection: &github.Protection{AllowForcePushes: &github.AllowForcePushes{Enabled: true}},
-				data.DepRepoDefaultBranchEffectiveRules:    []*github.RepositoryRule{{Type: "pull_request"}},
+				data.DepRepoDefaultBranchEffectiveRules:    &github.BranchRules{PullRequest: []*github.PullRequestBranchRule{{}}},
 			},
 			expectedStatus: rules.StatusFail,
 		},

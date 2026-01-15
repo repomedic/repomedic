@@ -6,7 +6,7 @@ import (
 	"repomedic/internal/data"
 	"repomedic/internal/fetcher"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 // reposScannedFetcher returns the list of repositories discovered for the current scan.

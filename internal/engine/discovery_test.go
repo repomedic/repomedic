@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func mustParseURL(t *testing.T, raw string) *url.URL {
@@ -608,9 +608,9 @@ func TestDedupeRefs(t *testing.T) {
 			name = parts[1]
 		}
 		return &github.Repository{
-			FullName: github.String(fullName),
-			Name:     github.String(name),
-			Owner:    &github.User{Login: github.String(owner)},
+			FullName: github.Ptr(fullName),
+			Name:     github.Ptr(name),
+			Owner:    &github.User{Login: github.Ptr(owner)},
 		}
 	}
 

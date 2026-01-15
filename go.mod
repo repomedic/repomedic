@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	github.com/fatih/color v1.18.0
-	github.com/google/go-github/v66 v66.0.0
+	github.com/google/go-github/v81 v81.0.0
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sync v0.19.0

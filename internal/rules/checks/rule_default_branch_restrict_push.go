@@ -4,9 +4,8 @@ import (
 	"context"
 	"repomedic/internal/data"
 	"repomedic/internal/rules"
-	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type DefaultBranchRestrictPushRule struct{}
@@ -97,19 +96,14 @@ func effectiveRulesRestrictPush(dc data.DataContext) (bool, string) {
 		return false, ""
 	}
 
-	rules, ok := val.([]*github.RepositoryRule)
+	rules, ok := val.(*github.BranchRules)
 	if !ok {
 		return false, "Invalid dependency type"
 	}
 
-	for _, rule := range rules {
-		if rule == nil {
-			continue
-		}
-		// "update" rule type restricts updates to the branch (pushes).
-		if strings.EqualFold(rule.Type, "update") {
-			return true, ""
-		}
+	// In v81, Update is a slice; if non-empty, updates (pushes) are restricted
+	if len(rules.Update) > 0 {
+		return true, ""
 	}
 	return false, ""
 }

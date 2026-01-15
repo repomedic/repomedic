@@ -5,7 +5,7 @@ import (
 	"repomedic/internal/data"
 	"repomedic/internal/rules"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type DefaultBranchProtectedRule struct{}
@@ -90,12 +90,24 @@ func effectiveRulesExist(dc data.DataContext) (bool, string) {
 		return false, ""
 	}
 
-	rules, ok := val.([]*github.RepositoryRule)
+	branchRules, ok := val.(*github.BranchRules)
 	if !ok {
 		return false, "Invalid dependency type"
 	}
 
-	return len(rules) > 0, ""
+	// In v81, BranchRules has typed fields for each rule type.
+	// Any non-empty slice indicates rules exist.
+	if len(branchRules.PullRequest) > 0 ||
+		len(branchRules.RequiredStatusChecks) > 0 ||
+		len(branchRules.NonFastForward) > 0 ||
+		len(branchRules.Update) > 0 ||
+		len(branchRules.Deletion) > 0 ||
+		len(branchRules.RequiredSignatures) > 0 ||
+		len(branchRules.RequiredLinearHistory) > 0 ||
+		len(branchRules.Creation) > 0 {
+		return true, ""
+	}
+	return false, ""
 }
 
 func init() {

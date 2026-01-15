@@ -4,9 +4,8 @@ import (
 	"context"
 	"repomedic/internal/data"
 	"repomedic/internal/rules"
-	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 type DefaultBranchPRRequiredRule struct{}
@@ -94,18 +93,14 @@ func effectiveRulesRequirePR(dc data.DataContext) (bool, string) {
 		return false, ""
 	}
 
-	rules, ok := val.([]*github.RepositoryRule)
+	rules, ok := val.(*github.BranchRules)
 	if !ok {
 		return false, "Invalid dependency type"
 	}
 
-	for _, rule := range rules {
-		if rule == nil {
-			continue
-		}
-		if strings.EqualFold(rule.Type, "pull_request") {
-			return true, ""
-		}
+	// In v81, PullRequest is a slice; if non-empty, PRs are required
+	if len(rules.PullRequest) > 0 {
+		return true, ""
 	}
 	return false, ""
 }

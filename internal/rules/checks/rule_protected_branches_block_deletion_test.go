@@ -8,12 +8,12 @@ import (
 	"repomedic/internal/data"
 	"repomedic/internal/data/models"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestProtectedBranchesBlockDeletionRule_Evaluate(t *testing.T) {
 	rule := &ProtectedBranchesBlockDeletionRule{}
-	repo := &github.Repository{FullName: github.String("org/repo")}
+	repo := &github.Repository{FullName: github.Ptr("org/repo")}
 
 	tests := []struct {
 		name           string

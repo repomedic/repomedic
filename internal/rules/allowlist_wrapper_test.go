@@ -5,7 +5,7 @@ import (
 	"repomedic/internal/data"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 // MockRule is a simple rule for testing purposes.
@@ -46,7 +46,7 @@ func (m *MockRule) Configure(opts map[string]string) error {
 
 func TestAllowListWrapper_Evaluate(t *testing.T) {
 	repo := &github.Repository{
-		FullName: github.String("org/repo"),
+		FullName: github.Ptr("org/repo"),
 	}
 
 	tests := []struct {

@@ -5,7 +5,7 @@ import (
 
 	"repomedic/internal/data/models"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestSampleReposForConvention(t *testing.T) {
@@ -25,8 +25,8 @@ func TestSampleReposForConvention(t *testing.T) {
 		{
 			name: "fewer than n repos",
 			repos: []*github.Repository{
-				{FullName: github.String("org/a")},
-				{FullName: github.String("org/b")},
+				{FullName: github.Ptr("org/a")},
+				{FullName: github.Ptr("org/b")},
 			},
 			n:        10,
 			wantLen:  2,
@@ -35,9 +35,9 @@ func TestSampleReposForConvention(t *testing.T) {
 		{
 			name: "exactly n repos",
 			repos: []*github.Repository{
-				{FullName: github.String("org/a")},
-				{FullName: github.String("org/b")},
-				{FullName: github.String("org/c")},
+				{FullName: github.Ptr("org/a")},
+				{FullName: github.Ptr("org/b")},
+				{FullName: github.Ptr("org/c")},
 			},
 			n:        3,
 			wantLen:  3,
@@ -46,10 +46,10 @@ func TestSampleReposForConvention(t *testing.T) {
 		{
 			name: "more than n repos",
 			repos: []*github.Repository{
-				{FullName: github.String("org/a")},
-				{FullName: github.String("org/b")},
-				{FullName: github.String("org/c")},
-				{FullName: github.String("org/d")},
+				{FullName: github.Ptr("org/a")},
+				{FullName: github.Ptr("org/b")},
+				{FullName: github.Ptr("org/c")},
+				{FullName: github.Ptr("org/d")},
 			},
 			n:        2,
 			wantLen:  2,
@@ -58,9 +58,9 @@ func TestSampleReposForConvention(t *testing.T) {
 		{
 			name: "case insensitive sorting",
 			repos: []*github.Repository{
-				{FullName: github.String("org/Abc")},
-				{FullName: github.String("org/xyz")},
-				{FullName: github.String("org/MNO")},
+				{FullName: github.Ptr("org/Abc")},
+				{FullName: github.Ptr("org/xyz")},
+				{FullName: github.Ptr("org/MNO")},
 			},
 			n:        3,
 			wantLen:  3,
@@ -92,27 +92,27 @@ func TestMaskFromRepoBools(t *testing.T) {
 		{
 			name: "all methods enabled",
 			repo: &github.Repository{
-				AllowMergeCommit: github.Bool(true),
-				AllowSquashMerge: github.Bool(true),
-				AllowRebaseMerge: github.Bool(true),
+				AllowMergeCommit: github.Ptr(true),
+				AllowSquashMerge: github.Ptr(true),
+				AllowRebaseMerge: github.Ptr(true),
 			},
 			want: models.MergeMethodMerge | models.MergeMethodSquash | models.MergeMethodRebase,
 		},
 		{
 			name: "only squash",
 			repo: &github.Repository{
-				AllowMergeCommit: github.Bool(false),
-				AllowSquashMerge: github.Bool(true),
-				AllowRebaseMerge: github.Bool(false),
+				AllowMergeCommit: github.Ptr(false),
+				AllowSquashMerge: github.Ptr(true),
+				AllowRebaseMerge: github.Ptr(false),
 			},
 			want: models.MergeMethodSquash,
 		},
 		{
 			name: "merge and rebase",
 			repo: &github.Repository{
-				AllowMergeCommit: github.Bool(true),
-				AllowSquashMerge: github.Bool(false),
-				AllowRebaseMerge: github.Bool(true),
+				AllowMergeCommit: github.Ptr(true),
+				AllowSquashMerge: github.Ptr(false),
+				AllowRebaseMerge: github.Ptr(true),
 			},
 			want: models.MergeMethodMerge | models.MergeMethodRebase,
 		},
