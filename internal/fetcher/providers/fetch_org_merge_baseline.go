@@ -103,9 +103,9 @@ func (o *orgMergeBaselineFetcher) Fetch(ctx context.Context, repo *github.Reposi
 	}
 
 	// Filter to actively enforced rulesets targeting branches that match targetRef.
-	applicableRulesets := filterApplicableOrgRulesets(rulesets, targetRef)
+	applicableRulesetsWithMetadata := filterApplicableOrgRulesets(rulesets, targetRef)
 
-	if len(applicableRulesets) == 0 {
+	if len(applicableRulesetsWithMetadata) == 0 {
 		return &models.MergeBaseline{
 			State:    models.BaselineStateNone,
 			Source:   models.BaselineSourceOrganizationRuleset,
@@ -113,8 +113,31 @@ func (o *orgMergeBaselineFetcher) Fetch(ctx context.Context, repo *github.Reposi
 		}, nil
 	}
 
-	// Derive allowed merge methods from applicable rulesets.
-	return deriveBaselineFromRulesets(applicableRulesets, targetRef)
+	// Fetch detailed rulesets (including rules) for the applicable ones.
+	var detailedRulesets []*github.RepositoryRuleset
+	for _, rs := range applicableRulesetsWithMetadata {
+		if rs.ID == nil {
+			continue
+		}
+		if err := f.Budget().Acquire(ctx, 1); err != nil {
+			return nil, err
+		}
+		detailed, resp, err := f.Client().Client.Organizations.GetRepositoryRuleset(ctx, owner, *rs.ID)
+		if resp != nil {
+			f.Budget().UpdateFromResponse(resp.Response)
+		}
+		if err != nil {
+			return &models.MergeBaseline{
+				State:    models.BaselineStateNone,
+				Source:   models.BaselineSourceOrganizationRuleset,
+				Evidence: []string{"failed to fetch detailed ruleset: " + rs.Name + ": " + err.Error()},
+			}, nil
+		}
+		detailedRulesets = append(detailedRulesets, detailed)
+	}
+
+	// Derive allowed merge methods from applicable detailed rulesets.
+	return deriveBaselineFromRulesets(detailedRulesets, targetRef)
 }
 
 // determineTargetRef finds the most common default branch among scanned repos
