@@ -45,7 +45,7 @@ repomedic scan --org my-org
 Authenticate using the GitHub CLI (preferred):
 
 ```bash
-gh auth login
+gh auth login --scopes "repo admin:org"
 ```
 
 Or using an environment variable:
