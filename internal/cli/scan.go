@@ -181,7 +181,7 @@ func init() {
 
 	// Output
 	scanCmd.Flags().StringVar(&cfg.Output.ConsoleFormat, flags.FlagConsoleFormat, "text", "Console output format: text|json|ndjson (default: text)")
-	scanCmd.Flags().StringSliceVar(&cfg.Output.ConsoleFilterStatus, flags.FlagConsoleFilterStatus, nil, "Filter console output by status (PASS, FAIL, ERROR). Comma-separated.")
+	scanCmd.Flags().StringSliceVar(&cfg.Output.ConsoleFilterStatus, flags.FlagConsoleFilterStatus, nil, "Filter console output by status (PASS, FAIL, ERROR, SKIPPED). Comma-separated.")
 	scanCmd.Flags().StringVar(&cfg.Output.Report, flags.FlagReport, "", "Write a Markdown report to this path")
 	scanCmd.Flags().StringVar(&cfg.Output.Out, flags.FlagOut, "", "Write structured output to this path")
 	scanCmd.Flags().StringVar(&cfg.Output.OutFormat, flags.FlagOutFormat, "", "Structured output format for --out: json|ndjson (default: inferred from file extension)")

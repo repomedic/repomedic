@@ -57,6 +57,20 @@ func TestConsoleSink_Filtering(t *testing.T) {
 			input:          rules.Result{Status: rules.StatusFail, Repo: "r", RuleID: "rule"},
 			shouldWrite:    true,
 		},
+		{
+			name:           "text - filter SKIPPED - input SKIPPED",
+			format:         "text",
+			filterStatuses: []string{"SKIPPED"},
+			input:          rules.Result{Status: rules.StatusSkipped, Repo: "r", RuleID: "rule"},
+			shouldWrite:    true,
+		},
+		{
+			name:           "text - filter SKIPPED - input PASS",
+			format:         "text",
+			filterStatuses: []string{"SKIPPED"},
+			input:          rules.Result{Status: rules.StatusPass, Repo: "r", RuleID: "rule"},
+			shouldWrite:    false,
+		},
 	}
 
 	for _, tt := range tests {

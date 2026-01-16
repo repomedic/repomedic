@@ -87,7 +87,7 @@ type Output struct {
 	ConsoleFormat string
 
 	// ConsoleFilterStatus filters console output by result status (see --console-filter-status).
-	// Allowed values: PASS, FAIL, ERROR.
+	// Allowed values: PASS, FAIL, ERROR, SKIPPED.
 	ConsoleFilterStatus []string
 
 	// Report writes a Markdown report to this path (see --report).
