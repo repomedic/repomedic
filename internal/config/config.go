@@ -86,6 +86,10 @@ type Output struct {
 	// Allowed values: text, json, ndjson.
 	ConsoleFormat string
 
+	// ConsoleFilterStatus filters console output by result status (see --console-filter-status).
+	// Allowed values: PASS, FAIL, ERROR.
+	ConsoleFilterStatus []string
+
 	// Report writes a Markdown report to this path (see --report).
 	Report string
 
