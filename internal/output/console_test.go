@@ -147,7 +147,9 @@ func TestConsoleSink_Filtering_NDJSON(t *testing.T) {
 
 	// PASS should be ignored
 	pass := rules.Result{Status: rules.StatusPass, Repo: "r", RuleID: "rule"}
-	sink.Write(pass)
+	if err := sink.Write(pass); err != nil {
+		t.Fatalf("Write error: %v", err)
+	}
 
 	if buf.Len() > 0 {
 		t.Errorf("expected no output for PASS, got: %s", buf.String())
@@ -155,7 +157,9 @@ func TestConsoleSink_Filtering_NDJSON(t *testing.T) {
 
 	// FAIL should be written
 	fail := rules.Result{Status: rules.StatusFail, Repo: "r", RuleID: "rule"}
-	sink.Write(fail)
+	if err := sink.Write(fail); err != nil {
+		t.Fatalf("Write error: %v", err)
+	}
 
 	if !strings.Contains(buf.String(), `"status":"FAIL"`) {
 		t.Errorf("expected output for FAIL, got: %s", buf.String())

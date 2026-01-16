@@ -30,13 +30,13 @@ const (
 	FlagEvidence = "evidence"
 
 	// Output
-	FlagConsoleFormat      = "console-format"
+	FlagConsoleFormat       = "console-format"
 	FlagConsoleFilterStatus = "console-filter-status"
-	FlagReport             = "report"
-	FlagOut                = "out"
-	FlagOutFormat          = "out-format"
-	FlagEmit               = "emit"
-	FlagNoConsole          = "no-console"
+	FlagReport              = "report"
+	FlagOut                 = "out"
+	FlagOutFormat           = "out-format"
+	FlagEmit                = "emit"
+	FlagNoConsole           = "no-console"
 
 	// Runtime
 	FlagConcurrency = "concurrency"
