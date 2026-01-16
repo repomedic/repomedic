@@ -55,7 +55,7 @@ func TestConsoleSink_NDJSON_FlushesPerWrite(t *testing.T) {
 	defer pw.Close()
 
 	bw := bufio.NewWriterSize(pw, 64*1024)
-	s := NewConsoleSink(bw, "ndjson")
+	s := NewConsoleSink(bw, "ndjson", nil)
 
 	lineCh := make(chan string, 1)
 	errCh := make(chan error, 1)

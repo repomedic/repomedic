@@ -6,27 +6,41 @@ import (
 	"io"
 	"os"
 	"repomedic/internal/rules"
+	"strings"
 	"sync"
 )
 
 type ConsoleSink struct {
-	writer  io.Writer
-	format  string // "text", "json", "ndjson"
-	mu      sync.Mutex
-	results []rules.Result // For JSON array output
+	writer          io.Writer
+	format          string // "text", "json", "ndjson"
+	mu              sync.Mutex
+	results         []rules.Result // For JSON array output
+	allowedStatuses map[string]bool
 }
 
-func NewConsoleSink(w io.Writer, format string) *ConsoleSink {
+func NewConsoleSink(w io.Writer, format string, filterStatuses []string) *ConsoleSink {
 	if w == nil {
 		w = os.Stdout
 	}
 	if format == "" {
 		format = "text"
 	}
-	return &ConsoleSink{
+
+	s := &ConsoleSink{
 		writer: w,
 		format: format,
 	}
+
+	if len(filterStatuses) > 0 {
+		s.allowedStatuses = make(map[string]bool)
+		for _, st := range filterStatuses {
+			// Normalize to uppercase for case-insensitive comparison
+			// The status types are typically "PASS", "FAIL", "ERROR"
+			s.allowedStatuses[strings.ToUpper(st)] = true
+		}
+	}
+
+	return s
 }
 
 func (s *ConsoleSink) Write(v any) error {
@@ -43,6 +57,15 @@ func (s *ConsoleSink) writeLocked(v any) error {
 	println := func(args ...any) error {
 		_, err := fmt.Fprintln(s.writer, args...)
 		return err
+	}
+
+	// Apply filtering if configured
+	if len(s.allowedStatuses) > 0 {
+		if r, ok := v.(rules.Result); ok {
+			if !s.allowedStatuses[string(r.Status)] {
+				return nil
+			}
+		}
 	}
 
 	switch s.format {

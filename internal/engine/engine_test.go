@@ -1004,7 +1004,7 @@ func TestEvaluateStreamingResults_StreamsPerRepoCompletion(t *testing.T) {
 
 	var buf bytes.Buffer
 	outMgr := output.NewManager()
-	if err := outMgr.AddSink(output.NewConsoleSink(&buf, "ndjson")); err != nil {
+	if err := outMgr.AddSink(output.NewConsoleSink(&buf, "ndjson", nil)); err != nil {
 		t.Fatalf("AddSink error: %v", err)
 	}
 
@@ -1103,7 +1103,7 @@ func TestEvaluateStreamingResults_ErrorsOnUndeclaredDependencyAccess(t *testing.
 
 	var buf bytes.Buffer
 	outMgr := output.NewManager()
-	if err := outMgr.AddSink(output.NewConsoleSink(&buf, "ndjson")); err != nil {
+	if err := outMgr.AddSink(output.NewConsoleSink(&buf, "ndjson", nil)); err != nil {
 		t.Fatalf("AddSink error: %v", err)
 	}
 

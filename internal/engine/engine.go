@@ -39,7 +39,7 @@ func setupOutputManager(cfg *config.Config) (*output.Manager, error) {
 
 	// Console Sink
 	if !cfg.Output.NoConsole {
-		if err := outMgr.AddSink(output.NewConsoleSink(nil, cfg.Output.ConsoleFormat)); err != nil {
+		if err := outMgr.AddSink(output.NewConsoleSink(nil, cfg.Output.ConsoleFormat, cfg.Output.ConsoleFilterStatus)); err != nil {
 			outMgr.Close()
 			return nil, err
 		}
