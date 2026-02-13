@@ -65,17 +65,14 @@ jobs:
           install-only: true
           version: latest
 
+      - name: Delete existing release (idempotent re-run)
+        run: gh release delete "${{ github.ref_name }}" --yes --cleanup-tag=false 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
+
       - name: Run release
         run: task release
         env:
-          # GH_RELEASE_PAT is a fine-grained PAT with access to:
-          #   Repositories: repomedic/repomedic, repomedic/homebrew-tap, repomedic/winget-pkgs
-          #   Permissions:  Contents (Read and write), Pull requests (Read and write)
-          #
-          # - Contents:write on repomedic/repomedic      → create GitHub releases + upload assets
-          # - Contents:write on repomedic/homebrew-tap    → push Homebrew formula updates
-          # - Contents:write on repomedic/winget-pkgs     → push WinGet manifest branch
-          # - Pull requests:write on repomedic/winget-pkgs → open PR to microsoft/winget-pkgs
           GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
 
       - name: Verify WinGet PR
