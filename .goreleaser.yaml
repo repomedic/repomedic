@@ -75,7 +75,7 @@ winget:
       token: "{{ .Env.GITHUB_TOKEN }}"
 
       pull_request:
-        enabled: false
+        enabled: true
         base:
           owner: microsoft
           name: winget-pkgs
