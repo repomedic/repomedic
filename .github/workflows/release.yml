@@ -82,19 +82,30 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           winget_branch="repomedic-${version}"
 
-          pr_url="$(gh pr list \
-            -R microsoft/winget-pkgs \
-            --head "repomedic:${winget_branch}" \
-            --state open \
-            --json url \
-            --jq '.[0].url')"
+          # GitHub's search index may lag behind PR creation; retry a few times.
+          max_attempts=5
+          for attempt in $(seq 1 "$max_attempts"); do
+            pr_url="$(gh pr list \
+              -R microsoft/winget-pkgs \
+              --head "repomedic:${winget_branch}" \
+              --state open \
+              --json url \
+              --jq '.[0].url')"
 
-          if [ -z "${pr_url}" ]; then
-            echo "Expected an open WinGet PR in microsoft/winget-pkgs from head repomedic:${winget_branch}, but none was found."
-            echo "This likely means the GoReleaser winget PR creation step failed or was skipped."
-            exit 1
-          fi
+            if [ -n "${pr_url}" ]; then
+              echo "WinGet PR: ${pr_url}"
+              exit 0
+            fi
 
-          echo "WinGet PR: ${pr_url}"
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              delay=$((attempt * 10))
+              echo "Attempt ${attempt}/${max_attempts}: PR not found yet, retrying in ${delay}s…"
+              sleep "$delay"
+            fi
+          done
+
+          echo "Expected an open WinGet PR in microsoft/winget-pkgs from head repomedic:${winget_branch}, but none was found after ${max_attempts} attempts."
+          echo "This likely means the GoReleaser winget PR creation step failed or was skipped."
+          exit 1
         env:
           GH_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
