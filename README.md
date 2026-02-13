@@ -16,14 +16,8 @@ brew install repomedic/tap/repomedic
 
 ### Winget
 
-```bash
+```powershell
 winget install repomedic.repomedic
-```
-
-### Go
-
-```bash
-go install github.com/repomedic/repomedic@latest
 ```
 
 ---
