@@ -122,27 +122,27 @@ jobs:
     steps:
       - name: Determine version and branch
         id: meta
-        shell: bash
+        shell: pwsh
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-          echo "branch=repomedic-${version}" >> "$GITHUB_OUTPUT"
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "branch=repomedic-$version" >> $env:GITHUB_OUTPUT
 
       - name: Checkout winget manifest branch (sparse)
-        shell: bash
+        shell: pwsh
         run: |
-          set -euo pipefail
-          branch="${{ steps.meta.outputs.branch }}"
-          version="${{ steps.meta.outputs.version }}"
-          manifest_dir="manifests/r/repomedic/repomedic/${version}"
+          $ErrorActionPreference = 'Stop'
+          $branch = "${{ steps.meta.outputs.branch }}"
+          $version = "${{ steps.meta.outputs.version }}"
+          $manifestDir = "manifests/r/repomedic/repomedic/$version"
 
-          git clone --no-checkout --depth 1 --filter=blob:none \
-            --branch "${branch}" \
+          git clone --no-checkout --depth 1 --filter=blob:none `
+            --branch $branch `
             "https://github.com/repomedic/winget-pkgs.git" winget-pkgs
 
-          cd winget-pkgs
+          Set-Location winget-pkgs
           git sparse-checkout init --cone
-          git sparse-checkout set "${manifest_dir}"
+          git sparse-checkout set $manifestDir
           git checkout
 
       - name: Enable local manifest files
@@ -159,19 +159,20 @@ jobs:
           winget install --manifest ".\winget-pkgs\manifests\r\repomedic\repomedic\${version}" --accept-source-agreements --accept-package-agreements
 
       - name: Verify installed version
-        shell: bash
+        shell: pwsh
         run: |
-          # winget install updates the registry PATH but the current session
-          # doesn't pick it up. Add the WinGet links directory explicitly.
-          export PATH="$PATH:$LOCALAPPDATA/Microsoft/WinGet/Links"
+          # Refresh PATH from the registry so the current session sees winget-installed binaries
+          $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+          $userPath    = [Environment]::GetEnvironmentVariable("Path", "User")
+          $env:Path    = "$machinePath;$userPath"
 
-          expected="${{ steps.meta.outputs.version }}"
-          # repomedic -v may print something like "repomedic version 1.2.3"
-          actual="$(repomedic -v 2>&1)"
-          echo "Expected version: ${expected}"
-          echo "Actual output:    ${actual}"
-          if [[ "${actual}" != *"${expected}"* ]]; then
-            echo "ERROR: Version mismatch!"
+          $expected = "${{ steps.meta.outputs.version }}"
+          $actual   = & repomedic -v 2>&1 | Out-String
+          $actual   = $actual.Trim()
+          Write-Host "Expected version: $expected"
+          Write-Host "Actual output:    $actual"
+          if ($actual -notmatch [regex]::Escape($expected)) {
+            Write-Host "ERROR: Version mismatch!"
             exit 1
-          fi
-          echo "Version verified successfully."
+          }
+          Write-Host "Version verified successfully."
