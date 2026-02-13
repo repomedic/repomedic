@@ -14,9 +14,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X repomedic/internal/cli.buildVersion={{.Version}}
-      - -X repomedic/internal/cli.buildCommit={{.Commit}}
-      - -X repomedic/internal/cli.buildDate={{.Date}}
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
     main: ./cmd/repomedic
 
 archives:
