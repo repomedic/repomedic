@@ -85,15 +85,13 @@ jobs:
           echo "Branch exists."
 
           echo "Checking for open PR against microsoft/winget-pkgs…"
+          # Use the REST API directly instead of 'gh pr list' which relies
+          # on GitHub's search index (often too slow on large repos).
           max_attempts=5
           for attempt in $(seq 1 $max_attempts); do
             delay=$((attempt * 10))
-            pr_url=$(gh pr list \
-              --repo microsoft/winget-pkgs \
-              --head "repomedic:${winget_branch}" \
-              --state open \
-              --json url \
-              --jq '.[0].url')
+            pr_url=$(gh api "repos/microsoft/winget-pkgs/pulls?head=repomedic:${winget_branch}&state=open&per_page=1" \
+              --jq '.[0].html_url // empty')
 
             if [[ -n "${pr_url}" ]]; then
               echo "PR found: ${pr_url}"
