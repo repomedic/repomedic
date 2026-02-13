@@ -63,7 +63,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           install-only: true
-          version: latest
+          version: ~> v2
 
       - name: Delete existing release (idempotent re-run)
         run: gh release delete "${{ github.ref_name }}" --yes --cleanup-tag=false 2>/dev/null || true
@@ -88,6 +88,33 @@ jobs:
       #     echo "Branch exists. Skipping PR verification (disabled for testing)."
       #   env:
       #     GH_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
+
+  test-brew:
+    needs: release
+    runs-on: macos-latest
+    steps:
+      - name: Determine version
+        id: meta
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Install from Homebrew tap
+        run: |
+          brew tap repomedic/tap
+          brew install repomedic/tap/repomedic
+
+      - name: Verify installed version
+        run: |
+          expected="${{ steps.meta.outputs.version }}"
+          actual="$(repomedic -v 2>&1)"
+          echo "Expected version: ${expected}"
+          echo "Actual output:    ${actual}"
+          if [[ "${actual}" != *"${expected}"* ]]; then
+            echo "ERROR: Version mismatch!"
+            exit 1
+          fi
+          echo "Version verified successfully."
 
   test-winget:
     needs: release
@@ -134,6 +161,10 @@ jobs:
       - name: Verify installed version
         shell: bash
         run: |
+          # winget install updates the registry PATH but the current session
+          # doesn't pick it up. Add the WinGet links directory explicitly.
+          export PATH="$PATH:$LOCALAPPDATA/Microsoft/WinGet/Links"
+
           expected="${{ steps.meta.outputs.version }}"
           # repomedic -v may print something like "repomedic version 1.2.3"
           actual="$(repomedic -v 2>&1)"
