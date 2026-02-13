@@ -75,37 +75,72 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
 
-      - name: Verify WinGet PR
-        run: |-
-          set -euo pipefail
+      # TODO: Re-enable WinGet PR verification after testing is complete.
+      # The pull_request block in .goreleaser.yaml is currently commented out
+      # so we don't spam microsoft/winget-pkgs with PRs during testing.
+      # - name: Verify WinGet branch
+      #   run: |
+      #     set -euo pipefail
+      #     version="${GITHUB_REF_NAME#v}"
+      #     winget_branch="repomedic-${version}"
+      #     echo "Checking that branch '${winget_branch}' exists on repomedic/winget-pkgs…"
+      #     gh api "repos/repomedic/winget-pkgs/branches/${winget_branch}" --jq '.name'
+      #     echo "Branch exists. Skipping PR verification (disabled for testing)."
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
 
+  test-winget:
+    needs: release
+    runs-on: windows-latest
+    steps:
+      - name: Determine version and branch
+        id: meta
+        shell: bash
+        run: |
           version="${GITHUB_REF_NAME#v}"
-          winget_branch="repomedic-${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "branch=repomedic-${version}" >> "$GITHUB_OUTPUT"
 
-          # GitHub's search index may lag behind PR creation; retry a few times.
-          max_attempts=5
-          for attempt in $(seq 1 "$max_attempts"); do
-            pr_url="$(gh pr list \
-              -R microsoft/winget-pkgs \
-              --head "repomedic:${winget_branch}" \
-              --state open \
-              --json url \
-              --jq '.[0].url')"
+      - name: Checkout winget manifest branch (sparse)
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="${{ steps.meta.outputs.branch }}"
+          version="${{ steps.meta.outputs.version }}"
+          manifest_dir="manifests/r/repomedic/repomedic/${version}"
 
-            if [ -n "${pr_url}" ]; then
-              echo "WinGet PR: ${pr_url}"
-              exit 0
-            fi
+          git clone --no-checkout --depth 1 --filter=blob:none \
+            --branch "${branch}" \
+            "https://github.com/repomedic/winget-pkgs.git" winget-pkgs
 
-            if [ "$attempt" -lt "$max_attempts" ]; then
-              delay=$((attempt * 10))
-              echo "Attempt ${attempt}/${max_attempts}: PR not found yet, retrying in ${delay}s…"
-              sleep "$delay"
-            fi
-          done
+          cd winget-pkgs
+          git sparse-checkout init --cone
+          git sparse-checkout set "${manifest_dir}"
+          git checkout
 
-          echo "Expected an open WinGet PR in microsoft/winget-pkgs from head repomedic:${winget_branch}, but none was found after ${max_attempts} attempts."
-          echo "This likely means the GoReleaser winget PR creation step failed or was skipped."
-          exit 1
-        env:
-          GH_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
+      - name: Enable local manifest files
+        run: winget settings --enable LocalManifestFiles
+
+      - name: Validate manifest
+        run: |
+          $version = "${{ steps.meta.outputs.version }}"
+          winget validate --manifest ".\winget-pkgs\manifests\r\repomedic\repomedic\${version}"
+
+      - name: Install from manifest
+        run: |
+          $version = "${{ steps.meta.outputs.version }}"
+          winget install --manifest ".\winget-pkgs\manifests\r\repomedic\repomedic\${version}" --accept-source-agreements --accept-package-agreements
+
+      - name: Verify installed version
+        shell: bash
+        run: |
+          expected="${{ steps.meta.outputs.version }}"
+          # repomedic -v may print something like "repomedic version 1.2.3"
+          actual="$(repomedic -v 2>&1)"
+          echo "Expected version: ${expected}"
+          echo "Actual output:    ${actual}"
+          if [[ "${actual}" != *"${expected}"* ]]; then
+            echo "ERROR: Version mismatch!"
+            exit 1
+          fi
+          echo "Version verified successfully."
