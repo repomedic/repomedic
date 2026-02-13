@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -68,6 +68,36 @@ jobs:
       - name: Run release
         run: task release
         env:
-          # Note: If publishing to an external Homebrew tap, ensure this token has repo scopes
-          # for both repositories. Generally requires a PAT added as a secret (e.g. GH_PAT).
+          # GH_RELEASE_PAT is a fine-grained PAT with access to:
+          #   Repositories: repomedic/repomedic, repomedic/homebrew-tap, repomedic/winget-pkgs
+          #   Permissions:  Contents (Read and write), Pull requests (Read and write)
+          #
+          # - Contents:write on repomedic/repomedic      → create GitHub releases + upload assets
+          # - Contents:write on repomedic/homebrew-tap    → push Homebrew formula updates
+          # - Contents:write on repomedic/winget-pkgs     → push WinGet manifest branch
+          # - Pull requests:write on repomedic/winget-pkgs → open PR to microsoft/winget-pkgs
           GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
+
+      - name: Verify WinGet PR
+        run: |-
+          set -euo pipefail
+
+          version="${GITHUB_REF_NAME#v}"
+          winget_branch="repomedic-${version}"
+
+          pr_url="$(gh pr list \
+            -R microsoft/winget-pkgs \
+            --head "repomedic:${winget_branch}" \
+            --state open \
+            --json url \
+            --jq '.[0].url')"
+
+          if [ -z "${pr_url}" ]; then
+            echo "Expected an open WinGet PR in microsoft/winget-pkgs from head repomedic:${winget_branch}, but none was found."
+            echo "This likely means the GoReleaser winget PR creation step failed or was skipped."
+            exit 1
+          fi
+
+          echo "WinGet PR: ${pr_url}"
+        env:
+          GH_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
