@@ -1,0 +1,42 @@
+name: test-winget
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to verify (e.g. 1.1.0)'
+        required: true
+        type: string
+
+jobs:
+  test-winget:
+    runs-on: windows-latest
+    steps:
+      - name: Update winget source
+        run: winget source update --name winget --accept-source-agreements
+
+      - name: Install repomedic from winget
+        run: >
+          winget install repomedic.repomedic
+          --version "${{ inputs.version }}"
+          --accept-source-agreements
+          --accept-package-agreements
+
+      - name: Verify installed version
+        shell: pwsh
+        run: |
+          # Refresh PATH so the current session sees winget-installed binaries
+          $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+          $userPath    = [Environment]::GetEnvironmentVariable("Path", "User")
+          $env:Path    = "$machinePath;$userPath"
+
+          $expected = "${{ inputs.version }}"
+          $actual   = & repomedic -v 2>&1 | Out-String
+          $actual   = $actual.Trim()
+          Write-Host "Expected version: $expected"
+          Write-Host "Actual output:    $actual"
+          if ($actual -notmatch [regex]::Escape($expected)) {
+            Write-Host "ERROR: Version mismatch!"
+            exit 1
+          }
+          Write-Host "Version verified successfully."
